@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
-import node from '@astrojs/node';
+import vercel from '@astrojs/vercel/serverless';
 import tailwindcss from '@tailwindcss/vite';
 
 // O site público continua estático (SSG) — todas as páginas são prerenderizadas.
@@ -15,7 +15,7 @@ export default defineConfig({
   // TODO: confirmar o domínio final de produção (impacta sitemap, RSS e OG).
   site: 'https://www.clinicarim.com.br',
 
-  adapter: node({ mode: 'standalone' }),
+  adapter: vercel(),
 
   integrations: [
     // Ilhas interativas (acordeões, formulário, mapa).
