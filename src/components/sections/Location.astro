@@ -1,0 +1,93 @@
+---
+import { getImage } from 'astro:assets';
+import Section from '@/components/ui/Section.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import MapEmbed from '@/components/react/MapEmbed.tsx';
+import { clinic } from '@/data/clinic';
+import locationPhoto from '@/assets/photos/location.jpg';
+
+/**
+ * Seção 6 — Localização. O mapa é a única parte interativa (client:visible);
+ * o restante (endereço, telefone) é estático.
+ * ⚠️ Título/intro são VERBATIM. Endereço/telefone vêm de clinic.ts (placeholder
+ * até os dados reais chegarem). Os emojis 🏢📍📞 do conteúdo original são
+ * tratados como cues de UX (mesmo critério usado em 🔽/🟢 na seção de
+ * médicos) e implementados como ícones vetoriais — boa prática de
+ * acessibilidade/consistência visual (emojis não escalam nem têm contraste
+ * controlado entre plataformas).
+ */
+const optimizedLocationPhoto = await getImage({ src: locationPhoto, width: 1200 });
+---
+
+<Section id="localizacao" labelledby="localizacao-heading" class="bg-ivory-100">
+  <Container>
+    <div data-reveal="fade-up" class="mb-12">
+      <SectionHeading
+        id="localizacao-heading"
+        eyebrow="Localização"
+        title="Onde Estamos"
+        intro="Estamos localizados em uma região central e de fácil acesso, estruturados para receber você com o máximo de conforto, segurança e acolhimento."
+        align="left"
+        class="max-w-3xl"
+      />
+    </div>
+
+    <div class="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
+      <div data-reveal="fade-right" class="flex h-full flex-col justify-center">
+
+      <address class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 not-italic">
+        {/* Card 1: Clínica */}
+        <div class="group flex items-center gap-4 rounded-3xl border border-ink-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-azure-200">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-azure-50 text-azure-700 transition-colors group-hover:bg-azure-600 group-hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 21h18M6 21V8l6-4 6 4v13M10 21v-6h4v6" />
+            </svg>
+          </span>
+          <div>
+            <span class="block font-sans text-xs font-semibold uppercase tracking-wider text-ink-400">Unidade</span>
+            <span class="block font-display text-[15px] font-semibold text-ink-900">{clinic.name}</span>
+          </div>
+        </div>
+
+        {/* Card 2: Endereço */}
+        <div class="group flex items-center gap-4 rounded-3xl border border-ink-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-azure-200 sm:col-span-2 lg:col-span-1">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-azure-50 text-azure-700 transition-colors group-hover:bg-azure-600 group-hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </span>
+          <div>
+            <span class="block font-sans text-xs font-semibold uppercase tracking-wider text-ink-400">Endereço</span>
+            <span class="block font-sans text-[15px] text-ink-700 leading-snug">{clinic.address.full}</span>
+          </div>
+        </div>
+
+        {/* Card 3: Telefone/WhatsApp */}
+        <div class="group flex items-center gap-4 rounded-3xl border border-ink-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-azure-200">
+          <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-azure-50 text-azure-700 transition-colors group-hover:bg-azure-600 group-hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          </span>
+          <div>
+            <span class="block font-sans text-xs font-semibold uppercase tracking-wider text-ink-400">Contato</span>
+            <span class="block font-sans text-[15px] font-medium text-ink-700">{clinic.phoneDisplay}</span>
+          </div>
+        </div>
+      </address>
+    </div>
+
+    <div data-reveal="fade-left" class="h-full w-full">
+      <MapEmbed
+        client:visible
+        embedUrl={clinic.googleMapsEmbedUrl || undefined}
+        placeUrl={clinic.googleMapsPlaceUrl || undefined}
+        backgroundImageUrl={optimizedLocationPhoto.src}
+        title={`Mapa da localização — ${clinic.name}`}
+      />
+    </div>
+  </div>
+  </Container>
+</Section>

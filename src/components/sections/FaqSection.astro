@@ -1,0 +1,34 @@
+---
+import Section from '@/components/ui/Section.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import FaqAccordion from '@/components/react/FaqAccordion.tsx';
+import { faqCategories } from '@/data/faq';
+
+/**
+ * Seção 8 — FAQ, agrupado por categoria. Heading estático + ilha (Radix
+ * Accordion). client:visible: está bem abaixo da dobra. O Accordion.Content
+ * usa forceMount, então o texto completo já está no HTML SSR.
+ *
+ * O JSON-LD FAQPage NÃO é emitido aqui — já vem incluído em
+ * homepageSchemas() (ver src/pages/index.astro), para evitar duplicar o
+ * schema na página caso esta seção seja reaproveitada em outro lugar.
+ * ⚠️ Título e todo o conteúdo de faq.ts são VERBATIM.
+ */
+---
+
+<Section id="faq" labelledby="faq-heading" class="bg-ivory-100">
+  <Container>
+    <div data-reveal="fade-up">
+      <SectionHeading
+        id="faq-heading"
+        eyebrow="Perguntas Frequentes"
+        title="Tire suas dúvidas sobre os nossos atendimentos"
+      />
+    </div>
+
+    <div data-reveal="fade-up" data-reveal-delay="100">
+      <FaqAccordion client:visible categories={faqCategories} />
+    </div>
+  </Container>
+</Section>

@@ -1,0 +1,55 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import horizontal from '@/assets/logos/clinica-rim-horizontal.jpg';
+import classica from '@/assets/logos/clinica-rim-classica.png';
+import monoHorizontal from '@/assets/logos/clinica-rim-mono-horizontal.png';
+import monoStacked from '@/assets/logos/clinica-rim-mono-stacked.png';
+
+/**
+ * Ponto ÚNICO de renderização da logo. Quando as artes forem reexportadas
+ * "apertadas" (ver TODO abaixo), basta trocar os imports aqui.
+ *
+ * ⚠️ TODO (arte): os arquivos atuais vieram em canvas 16:9 (frames de
+ * composição), com bastante margem ao redor do símbolo. Para web, o ideal é
+ * exportar versões com "trim" (sem margem) — isso fará a logo ocupar melhor o
+ * espaço no header/footer. Por ora os arquivos são usados como estão.
+ *
+ * Variantes:
+ *  - horizontal / classica .......... coloridas (fundo escuro)
+ *  - mono-horizontal / mono-stacked .. pretas (fundo transparente, p/ fundo claro)
+ */
+type Variant = 'horizontal' | 'classica' | 'mono-horizontal' | 'mono-stacked';
+
+interface Props {
+  variant?: Variant;
+  class?: string;
+  alt?: string;
+  eager?: boolean;
+  width?: number;
+}
+
+const {
+  variant = 'mono-horizontal',
+  class: className,
+  alt = 'Clínica Rim',
+  eager = false,
+  width = 220,
+} = Astro.props;
+
+const sources: Record<Variant, ImageMetadata> = {
+  horizontal,
+  classica,
+  'mono-horizontal': monoHorizontal,
+  'mono-stacked': monoStacked,
+};
+---
+
+<Image
+  src={sources[variant]}
+  alt={alt}
+  width={width}
+  densities={[1, 2]}
+  loading={eager ? 'eager' : 'lazy'}
+  class={className}
+/>

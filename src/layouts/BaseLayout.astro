@@ -1,0 +1,248 @@
+---
+import '@/styles/global.css';
+import BaseHead from '@/components/seo/BaseHead.astro';
+import Button from '@/components/ui/Button.astro';
+import Container from '@/components/ui/Container.astro';
+import BrandLogo from '@/components/ui/BrandLogo.astro';
+import { clinic } from '@/data/clinic';
+import { buildWhatsappUrl } from '@/lib/utils/whatsapp';
+
+/**
+ * Layout base de todas as páginas: <head> (SEO), header fixo com navegação
+ * e CTA de WhatsApp, slot do conteúdo e footer.
+ *
+ * O menu mobile usa <details>/<summary> nativo (zero JS, acessível por
+ * teclado e leitor de tela).
+ */
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  type?: 'website' | 'article';
+  canonical?: string;
+  noindex?: boolean;
+}
+
+const { title, description, ogImage, type, canonical, noindex } = Astro.props;
+
+// Rótulos de navegação (UX/estrutura — espelham os títulos das seções).
+const navItems = [
+  { label: 'Especialistas', href: '/#especialistas' },
+  { label: 'Áreas de Atendimento', href: '/#areas' },
+  { label: 'Localização', href: '/#localizacao' },
+  { label: 'FAQ', href: '/#faq' },
+  { label: 'Blog', href: '/blog' },
+];
+
+// CTA principal: abre o WhatsApp se houver número; senão rola até o formulário.
+const waUrl = buildWhatsappUrl('Olá! Gostaria de agendar uma consulta na Clínica Rim.');
+const ctaHref = waUrl ?? '/#contato';
+const ctaTarget = waUrl ? '_blank' : undefined;
+const ctaRel = waUrl ? 'noopener noreferrer' : undefined;
+
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <BaseHead
+      title={title}
+      description={description}
+      ogImage={ogImage}
+      type={type}
+      canonical={canonical}
+      noindex={noindex}
+    />
+  </head>
+  <body class="min-h-screen bg-ivory font-sans text-ink-700 antialiased">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-ink-900 focus:px-4 focus:py-2 focus:text-ivory"
+    >
+      Pular para o conteúdo
+    </a>
+
+    {/* Barra fina institucional — reforça o "cara de clínica" */}
+    <div class="hidden bg-ink-900 text-azure-100 md:block">
+      <Container class="flex h-9 items-center justify-between font-sans text-xs">
+        <p class="flex items-center gap-2 tracking-wide">
+          <svg class="size-3.5 text-azure-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          {clinic.address.full}
+        </p>
+        <p class="flex items-center gap-2 tracking-wide">
+          <svg class="size-3.5 text-azure-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 5a2 2 0 0 1 2-2h3l2 5-2.5 1.5a11 11 0 0 0 5 5L14 12l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 5Z" />
+          </svg>
+          {clinic.phoneDisplay}
+        </p>
+      </Container>
+    </div>
+
+    <header class="sticky top-0 z-40 border-b border-ink-100 bg-white/85 backdrop-blur-md">
+      <Container class="flex h-18 items-center justify-between gap-4">
+        <a href="/" class="flex items-center" aria-label="Clínica RIM — página inicial">
+          <BrandLogo variant="mono-horizontal" eager class="h-10 w-auto" />
+        </a>
+
+        {/* Navegação desktop */}
+        <nav class="hidden items-center gap-7 md:flex" aria-label="Navegação principal">
+          {
+            navItems.map((item) => (
+              <a
+                href={item.href}
+                class="font-sans text-sm font-semibold text-ink-600 transition-colors hover:text-azure-600"
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+
+        <div class="hidden md:block">
+          <Button href={ctaHref} target={ctaTarget} rel={ctaRel}>
+            Agendar consulta
+          </Button>
+        </div>
+
+        {/* Menu mobile (zero JS) */}
+        <details class="relative md:hidden">
+          <summary
+            class="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-ink-200 text-ink-700 [&::-webkit-details-marker]:hidden"
+            aria-label="Abrir menu de navegação"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </summary>
+          <div
+            class="absolute right-0 z-50 mt-3 w-64 rounded-2xl border border-ink-100 bg-white p-3 shadow-xl shadow-ink-900/10"
+          >
+            <nav class="flex flex-col" aria-label="Navegação principal (mobile)">
+              {
+                navItems.map((item) => (
+                  <a
+                    href={item.href}
+                    class="rounded-lg px-3 py-2.5 font-sans text-sm font-semibold text-ink-700 hover:bg-azure-50"
+                  >
+                    {item.label}
+                  </a>
+                ))
+              }
+            </nav>
+            <div class="mt-2 border-t border-ink-100 pt-3">
+              <Button href={ctaHref} target={ctaTarget} rel={ctaRel} class="w-full">
+                Agendar consulta
+              </Button>
+            </div>
+          </div>
+        </details>
+      </Container>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="border-t border-ink-100 bg-ink-950 text-azure-100">
+      <Container class="grid gap-10 py-14 sm:grid-cols-3">
+        <div>
+          <BrandLogo variant="horizontal" class="h-10 w-auto rounded-lg" />
+          <p class="mt-4 font-sans text-sm text-azure-200/80">{clinic.specialtiesLabel}</p>
+          <Button href={ctaHref} target={ctaTarget} rel={ctaRel} class="mt-5">
+            Agendar consulta
+          </Button>
+        </div>
+
+        <nav aria-label="Navegação do rodapé">
+          <h2 class="font-display text-sm font-semibold tracking-wide text-white uppercase">
+            Navegação
+          </h2>
+          <ul class="mt-4 space-y-2.5">
+            {
+              navItems.map((item) => (
+                <li>
+                  <a
+                    href={item.href}
+                    class="font-sans text-sm text-azure-200/80 transition-colors hover:text-white"
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+
+        <div>
+          <h2 class="font-display text-sm font-semibold tracking-wide text-white uppercase">
+            Contato
+          </h2>
+          <address class="mt-4 space-y-2.5 font-sans text-sm text-azure-200/80 not-italic">
+            <p>{clinic.address.full}</p>
+            <p>{clinic.phoneDisplay}</p>
+            {
+              clinic.email && (
+                <p>
+                  <a href={`mailto:${clinic.email}`} class="transition-colors hover:text-white">
+                    {clinic.email}
+                  </a>
+                </p>
+              )
+            }
+          </address>
+        </div>
+      </Container>
+
+      <div class="border-t border-white/10">
+        <Container
+          class="flex flex-col items-center justify-between gap-2 py-6 text-center font-sans text-xs text-azure-200/60 sm:flex-row"
+        >
+          <p>© {year} {clinic.name}. Todos os direitos reservados.</p>
+          <a href="/admin" class="transition-colors hover:text-white" rel="nofollow">
+            Área da equipe
+          </a>
+        </Container>
+      </div>
+    </footer>
+
+    {/* Script de scroll-reveal — Intersection Observer (zero dependência) */}
+    <script is:inline>
+      (function () {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        var targets = document.querySelectorAll('[data-reveal],[data-reveal-stagger]');
+        if (!targets.length) return;
+
+        var observer = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.setAttribute('data-revealed', '');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+        );
+
+        targets.forEach(function (el) { observer.observe(el); });
+      })();
+    </script>
+  </body>
+</html>

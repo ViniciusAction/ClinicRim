@@ -1,0 +1,220 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/*
+  -------------------------------------------------------------------------
+  TEMA DE MARCA — Clínica RIM (v2 "Clean Nephrology")
+  -------------------------------------------------------------------------
+  Direção: clínica de nefrologia moderna e limpa — muito respiro em branco,
+  azul-água (aqua) como cor primária (rim / água / filtração), petróleo
+  profundo para texto e superfícies escuras, e um toque de mel/areia apenas
+  em micro-acentos (estrelas de avaliação).
+
+  ⚠️ Os NOMES dos tokens foram mantidos da v1 (ink / azure / gold / ivory)
+  para não quebrar as classes espalhadas nos componentes — apenas os VALORES
+  mudaram:
+    ink   → petróleo (azul-esverdeado profundo) — texto e footer/contato
+    azure → aqua clínico — cor primária de marca (CTAs, links, selos)
+    gold  → mel suave — acento mínimo (estrelas, detalhes quentes)
+    ivory → névoa fria quase branca — fundo padrão
+
+  Tipografia: Sora (display, geométrica e precisa) + Manrope (corpo, humanista
+  e muito legível) — carregadas via <link> no BaseHead.astro.
+  ------------------------------------------------------------------------- */
+@theme {
+  --font-display: 'Sora', 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Manrope', system-ui, sans-serif;
+
+  /* ink — petróleo profundo: texto principal e superfícies escuras */
+  --color-ink-50: #f2f7f8;
+  --color-ink-100: #e2edef;
+  --color-ink-200: #c3dade;
+  --color-ink-300: #9cc0c8;
+  --color-ink-400: #679aa6;
+  --color-ink-500: #407987;
+  --color-ink-600: #2d616f;
+  --color-ink-700: #26505c;
+  --color-ink-800: #21424c;
+  --color-ink-900: #16333c;
+  --color-ink-950: #0d232b;
+
+  /* azure — aqua clínico, cor primária da marca */
+  --color-azure-50: #effafb;
+  --color-azure-100: #d8f1f5;
+  --color-azure-200: #b5e4ec;
+  --color-azure-300: #82cfdd;
+  --color-azure-400: #48b2c7;
+  --color-azure-500: #2c96ad;
+  --color-azure-600: #217a92;
+  --color-azure-700: #206377;
+  --color-azure-800: #215263;
+  --color-azure-900: #1f4554;
+  --color-azure-950: #0f2d39;
+
+  /* gold — mel suave: micro-acentos quentes (estrelas, selos pontuais) */
+  --color-gold-50: #fdf9ef;
+  --color-gold-100: #f8eed3;
+  --color-gold-200: #f0dca6;
+  --color-gold-300: #e6c470;
+  --color-gold-400: #dcab47;
+  --color-gold-500: #d09832;
+  --color-gold-600: #b87b27;
+  --color-gold-700: #935d23;
+
+  /* ivory — névoa fria quase branca (fundo padrão do site) */
+  --color-ivory-DEFAULT: #f7fafb;
+  --color-ivory-100: #edf3f5;
+}
+
+/* Atmosfera do Hero: fundo CLARO com lavagens radiais de aqua — leve e clínico */
+.bg-hero-mesh {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(ellipse 70% 55% at 85% 0%, color-mix(in oklab, var(--color-azure-100) 80%, transparent), transparent),
+    radial-gradient(ellipse 55% 45% at 0% 100%, color-mix(in oklab, var(--color-azure-50) 90%, transparent), transparent),
+    linear-gradient(180deg, #ffffff 0%, var(--color-ivory-DEFAULT) 100%);
+}
+
+/* Ondulações concêntricas (gotas d'água) — assinatura visual da nefrologia */
+.bg-ripples {
+  background-image: radial-gradient(
+    circle at center,
+    transparent 0,
+    transparent 54px,
+    color-mix(in oklab, var(--color-azure-400) 22%, transparent) 54px,
+    color-mix(in oklab, var(--color-azure-400) 22%, transparent) 55px,
+    transparent 55px,
+    transparent 110px,
+    color-mix(in oklab, var(--color-azure-400) 16%, transparent) 110px,
+    color-mix(in oklab, var(--color-azure-400) 16%, transparent) 111px,
+    transparent 111px,
+    transparent 168px,
+    color-mix(in oklab, var(--color-azure-400) 10%, transparent) 168px,
+    color-mix(in oklab, var(--color-azure-400) 10%, transparent) 169px,
+    transparent 169px
+  );
+}
+
+/* Grade pontilhada sutil para fundos de apoio */
+.bg-dot-grid {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--color-ink-300) 35%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+/* Animação de rotação lenta para elementos decorativos */
+@keyframes slow-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Flutuação suave (chips decorativos do hero) */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Tratamento duotone aqua CLARO para fotos placeholder — mantém coesão de
+   marca sem escurecer a página (v1 usava navy pesado). */
+.duotone-navy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-azure-700) 30%, transparent) 0%,
+    color-mix(in oklab, var(--color-azure-300) 18%, transparent) 100%
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* =========================================================================
+   SCROLL-REVEAL — Sistema de animações ativadas por Intersection Observer
+   =========================================================================
+   Uso: adicionar data-reveal="fade-up" (ou outro tipo) no elemento.
+   Para stagger em filhos: data-reveal-stagger no container pai.
+   O script no BaseLayout.astro adiciona [data-revealed] quando visível.
+   ========================================================================= */
+
+/* --- Estado inicial: elementos escondidos antes de entrar na viewport --- */
+[data-reveal] {
+  opacity: 0;
+  will-change: opacity, transform;
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Estado revelado --- */
+[data-reveal][data-revealed] {
+  opacity: 1;
+  transform: none;
+}
+
+/* --- Variantes de entrada --- */
+[data-reveal="fade-up"] {
+  transform: translateY(32px);
+}
+
+[data-reveal="fade-down"] {
+  transform: translateY(-32px);
+}
+
+[data-reveal="fade-left"] {
+  transform: translateX(40px);
+}
+
+[data-reveal="fade-right"] {
+  transform: translateX(-40px);
+}
+
+[data-reveal="zoom-in"] {
+  transform: scale(0.92);
+}
+
+[data-reveal="fade-in"] {
+  /* só opacidade, sem transform */
+  transform: none;
+}
+
+/* --- Stagger: atraso progressivo para elementos filhos --- */
+[data-reveal-stagger] > * {
+  opacity: 0;
+  transform: translateY(24px);
+  will-change: opacity, transform;
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-reveal-stagger][data-revealed] > * {
+  opacity: 1;
+  transform: none;
+}
+
+[data-reveal-stagger][data-revealed] > *:nth-child(1) { transition-delay: 0ms; }
+[data-reveal-stagger][data-revealed] > *:nth-child(2) { transition-delay: 100ms; }
+[data-reveal-stagger][data-revealed] > *:nth-child(3) { transition-delay: 200ms; }
+[data-reveal-stagger][data-revealed] > *:nth-child(4) { transition-delay: 300ms; }
+[data-reveal-stagger][data-revealed] > *:nth-child(5) { transition-delay: 400ms; }
+[data-reveal-stagger][data-revealed] > *:nth-child(6) { transition-delay: 500ms; }
+
+/* --- Delays opcionais via data-reveal-delay --- */
+[data-reveal-delay="100"] { transition-delay: 100ms; }
+[data-reveal-delay="200"] { transition-delay: 200ms; }
+[data-reveal-delay="300"] { transition-delay: 300ms; }
+[data-reveal-delay="400"] { transition-delay: 400ms; }
+[data-reveal-delay="500"] { transition-delay: 500ms; }
+
+/* --- Respeita preferência de acessibilidade --- */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal-stagger] > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

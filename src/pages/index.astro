@@ -1,0 +1,38 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import JsonLd from '@/components/seo/JsonLd.astro';
+import Hero from '@/components/sections/Hero.astro';
+import About from '@/components/sections/About.astro';
+import MedicalTeam from '@/components/sections/MedicalTeam.astro';
+import SymptomsAreas from '@/components/sections/SymptomsAreas.astro';
+import SocialProof from '@/components/sections/SocialProof.astro';
+import BlogPreview from '@/components/sections/BlogPreview.astro';
+import Location from '@/components/sections/Location.astro';
+import ContactSection from '@/components/sections/ContactSection.astro';
+import FaqSection from '@/components/sections/FaqSection.astro';
+import { homepageSchemas } from '@/lib/seo/structured-data';
+
+/**
+ * Landing page — montagem das 8 seções do roteiro, na ordem do conteúdo
+ * original. Página majoritariamente estática (SSG); apenas os componentes
+ * indicados nos blocos anteriores hidratam (client:visible).
+ */
+const siteUrl = Astro.site?.href ?? Astro.url.origin;
+---
+
+<BaseLayout
+  title="Clínica Rim — Nefrologia, Endocrinologia e Urologia em Londrina"
+  description="Cuidado médico especializado e integrado em Nefrologia, Endocrinologia e Urologia. Ciência rigorosa, escuta atenta e atendimento humanizado na Clínica Rim."
+>
+  <Hero />
+  <About />
+  <MedicalTeam />
+  <FaqSection />
+  <SymptomsAreas />
+  <SocialProof />
+  <BlogPreview />
+  <Location />
+  <ContactSection />
+
+  <JsonLd schema={homepageSchemas(siteUrl)} />
+</BaseLayout>

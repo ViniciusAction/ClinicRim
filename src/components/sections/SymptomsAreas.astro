@@ -1,0 +1,78 @@
+---
+import Section from '@/components/ui/Section.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import { symptomGroups, symptomsIntro } from '@/data/symptoms';
+
+/**
+ * Seção "Quando procurar um Especialista?" — grid 3-colunas, fundo claro.
+ *
+ * Cada coluna representa uma especialidade com cor de acento própria.
+ * Mantido como HTML puro (0 JS). Toda a lista de sintomas fica visível
+ * (sem acordeão) para maximizar o valor de SEO e legibilidade.
+ * ⚠️ CONTEÚDO VERBATIM — não alterar títulos, leads ou listas.
+ */
+
+const styles = [
+  {
+    stripe: 'bg-azure-400',
+    badge: 'bg-azure-50 text-azure-700 border border-azure-200',
+    dot: 'bg-azure-400',
+  },
+  {
+    stripe: 'bg-gold-400',
+    badge: 'bg-gold-50 text-gold-700 border border-gold-200',
+    dot: 'bg-gold-400',
+  },
+  {
+    stripe: 'bg-ink-500',
+    badge: 'bg-ink-100 text-ink-700 border border-ink-200',
+    dot: 'bg-ink-500',
+  },
+] as const;
+---
+
+<Section id="areas" labelledby="areas-heading" class="bg-white">
+  <Container>
+    <div data-reveal="fade-up">
+      <SectionHeading
+        id="areas-heading"
+        eyebrow="Áreas de Atendimento"
+        title="Quando procurar um Especialista?"
+        intro={symptomsIntro}
+      />
+    </div>
+
+    <div data-reveal-stagger class="mx-auto mt-14 grid max-w-6xl gap-6 md:grid-cols-3">
+      {
+        symptomGroups.map((group, i) => {
+          const s = styles[i];
+          return (
+            <div class="relative overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-sm transition-shadow hover:shadow-lg hover:shadow-ink-900/5">
+              {/* Faixa colorida no topo — identificador visual da especialidade */}
+              <div class={`h-1 w-full ${s.stripe}`} aria-hidden="true"></div>
+
+              <div class="p-7 pt-6">
+                <span class={`inline-block rounded-full px-3 py-1 font-sans text-xs font-semibold ${s.badge}`}>
+                  {group.specialty}
+                </span>
+
+                <h3 class="mt-5 font-display text-xl font-semibold text-ink-900">{group.title}</h3>
+                <p class="mt-2 font-sans text-sm leading-relaxed text-ink-500">{group.lead}</p>
+
+                <ul class="mt-6 space-y-2.5" role="list">
+                  {group.items.map((item) => (
+                    <li class="flex items-start gap-3 font-sans text-sm leading-relaxed text-ink-700">
+                      <span class={`mt-[0.42rem] size-1.5 shrink-0 rounded-full ${s.dot}`} aria-hidden="true"></span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          );
+        })
+      }
+    </div>
+  </Container>
+</Section>

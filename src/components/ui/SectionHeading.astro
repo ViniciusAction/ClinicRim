@@ -1,0 +1,78 @@
+---
+import { cn } from '@/lib/utils/cn';
+
+/**
+ * Cabeçalho de seção reutilizável (eyebrow + título + intro).
+ * `eyebrow` vira um selo-pílula aqua — assinatura visual do tema clean,
+ * reforçando hierarquia sem poluir.
+ */
+interface Props {
+  id?: string;
+  eyebrow?: string;
+  title: string;
+  intro?: string;
+  align?: 'left' | 'center';
+  as?: 'h1' | 'h2' | 'h3';
+  class?: string;
+  /** Usar em fundos escuros (hero navy) para inverter as cores. */
+  inverted?: boolean;
+}
+
+const {
+  id,
+  eyebrow,
+  title,
+  intro,
+  align = 'center',
+  as = 'h2',
+  class: className,
+  inverted = false,
+} = Astro.props;
+const Heading = as;
+const alignment = align === 'center' ? 'mx-auto text-center' : 'text-left';
+const eyebrowJustify = align === 'center' ? 'justify-center' : 'justify-start';
+---
+
+<div class={cn('max-w-2xl', alignment, className)}>
+  {
+    eyebrow && (
+      <p class={cn('mb-5 flex items-center', eyebrowJustify)}>
+        <span
+          class={cn(
+            'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-sans text-[11px] font-bold tracking-[0.16em] uppercase',
+            inverted
+              ? 'border-azure-300/30 bg-azure-400/10 text-azure-200'
+              : 'border-azure-200 bg-azure-50 text-azure-700',
+          )}
+        >
+          <span
+            class={cn('size-1.5 rounded-full', inverted ? 'bg-azure-300' : 'bg-azure-500')}
+            aria-hidden="true"
+          />
+          {eyebrow}
+        </span>
+      </p>
+    )
+  }
+  <Heading
+    id={id}
+    class={cn(
+      'text-balance font-display text-3xl tracking-tight sm:text-4xl lg:text-[2.6rem] lg:leading-[1.15]',
+      inverted ? 'font-bold text-white' : 'font-semibold text-ink-900',
+    )}
+  >
+    {title}
+  </Heading>
+  {
+    intro && (
+      <p
+        class={cn(
+          'mt-5 text-pretty font-sans text-lg leading-relaxed',
+          inverted ? 'text-azure-100' : 'text-ink-600',
+        )}
+      >
+        {intro}
+      </p>
+    )
+  }
+</div>

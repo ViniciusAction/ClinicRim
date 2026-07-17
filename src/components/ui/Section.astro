@@ -1,0 +1,21 @@
+---
+import { cn } from '@/lib/utils/cn';
+
+interface Props {
+  id?: string;
+  class?: string;
+  /** id do heading que rotula a seção (acessibilidade: aria-labelledby). */
+  labelledby?: string;
+}
+
+const { id, class: className, labelledby } = Astro.props;
+---
+
+{/* scroll-mt compensa o header fixo ao navegar por âncoras. */}
+<section
+  id={id}
+  aria-labelledby={labelledby}
+  class={cn('scroll-mt-20 py-16 sm:py-20 lg:py-24', className)}
+>
+  <slot />
+</section>

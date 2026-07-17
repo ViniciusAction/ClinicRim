@@ -1,0 +1,65 @@
+---
+import { getImage } from 'astro:assets';
+import ogDefault from '@/assets/logos/clinica-rim-classica.png';
+
+/**
+ * Tags de <head>: SEO, Open Graph e Twitter Cards.
+ * `Astro.site` (definido no astro.config) é a base para canônica e URLs
+ * absolutas de imagem — exigidas pelos crawlers sociais.
+ */
+interface Props {
+  title: string;
+  description: string;
+  /** Caminho (root-relative) ou URL absoluta de uma imagem OG específica. */
+  ogImage?: string;
+  type?: 'website' | 'article';
+  /** Sobrescreve a canônica (default: URL atual). */
+  canonical?: string;
+  /** noindex para páginas utilitárias. */
+  noindex?: boolean;
+}
+
+const { title, description, ogImage, type = 'website', canonical, noindex = false } = Astro.props;
+
+const canonicalURL = canonical ?? new URL(Astro.url.pathname, Astro.site).href;
+
+// OG padrão: logo clássica otimizada para ~1200px de largura.
+const generatedOg = await getImage({ src: ogDefault, width: 1200 });
+const ogImageURL = new URL(ogImage ?? generatedOg.src, Astro.site).href;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta name="generator" content={Astro.generator} />
+
+{/* Tipografia de marca: Sora (display) + Manrope (corpo) */}
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+/>
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalURL} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+{/* Open Graph */}
+<meta property="og:type" content={type} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:image" content={ogImageURL} />
+<meta property="og:site_name" content="Clínica Rim" />
+<meta property="og:locale" content="pt_BR" />
+
+{/* Twitter */}
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageURL} />
+
+{/* RSS do blog */}
+<link rel="alternate" type="application/rss+xml" title="Blog — Clínica Rim" href="/rss.xml" />

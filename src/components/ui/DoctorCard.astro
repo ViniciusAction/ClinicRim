@@ -1,0 +1,113 @@
+---
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import Button from '@/components/ui/Button.astro';
+import ProfileAccordion from '@/components/react/ProfileAccordion.tsx';
+import type { Doctor } from '@/data/doctors';
+import { buildWhatsappUrl } from '@/lib/utils/whatsapp';
+
+/**
+ * Card de médico — avatar circular flutuante sobre card claro centralizado.
+ * Sem foto: avatar com iniciais na cor da especialidade.
+ */
+interface Props {
+  doctor: Doctor;
+}
+
+const { doctor } = Astro.props;
+
+type SpecialtyKey = 'Nefrologia' | 'Endocrinologia' | 'Urologia';
+
+const specialtyConfig = {
+  'Nefrologia': {
+    specialtyTx: 'text-azure-700',
+    avatarBg: 'bg-azure-600',
+  },
+  'Endocrinologia': {
+    specialtyTx: 'text-gold-700',
+    avatarBg: 'bg-gold-600',
+  },
+  'Urologia': {
+    specialtyTx: 'text-ink-600',
+    avatarBg: 'bg-ink-700',
+  },
+} as const;
+
+const cfg = specialtyConfig[doctor.specialty as SpecialtyKey] ?? specialtyConfig['Nefrologia'];
+
+const photoModules = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/doctors/*.{jpg,jpeg,png,webp}',
+  { eager: true },
+);
+const photoEntry = Object.entries(photoModules).find(([path]) =>
+  path.includes(`/${doctor.photoId}.`),
+);
+const photo = photoEntry?.[1]?.default;
+
+const initials = doctor.name
+  .replace(/^(Dr\.|Dra\.)\s*/i, '')
+  .split(' ')
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((p) => p[0])
+  .join('')
+  .toUpperCase();
+
+const waUrl = buildWhatsappUrl(`Olá! Gostaria de falar com a equipe do(a) ${doctor.name}.`);
+---
+
+<article class="relative flex h-full flex-col items-center rounded-3xl border border-ink-100 bg-white px-7 pb-8 pt-16 text-center shadow-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-ink-900/10">
+
+  {/* Avatar flutuante */}
+  <div class="absolute -top-12 left-1/2 -translate-x-1/2">
+    {photo ? (
+      <Image
+        src={photo}
+        alt={`Foto profissional de ${doctor.name}`}
+        width={112}
+        height={112}
+        class="h-24 w-24 rounded-full object-cover ring-4 ring-white shadow-lg"
+      />
+    ) : (
+      <div
+        class:list={[
+          'flex h-24 w-24 items-center justify-center rounded-full ring-4 ring-white shadow-lg',
+          cfg.avatarBg,
+        ]}
+      >
+        <span class="font-display text-2xl font-bold text-white" aria-hidden="true">{initials}</span>
+      </div>
+    )}
+  </div>
+
+  {/* CRM/RQE */}
+  <p class="font-sans text-[11px] font-semibold tracking-wider text-ink-400 uppercase">
+    CRM {doctor.crm}&thinsp;·&thinsp;RQE {doctor.rqe}
+  </p>
+
+  {/* Nome */}
+  <h3 class="mt-1.5 font-display text-xl font-bold text-ink-900">{doctor.name}</h3>
+
+  {/* Especialidade */}
+  <p class:list={['mt-1 font-sans text-sm font-semibold', cfg.specialtyTx]}>{doctor.role}</p>
+
+  {/* Mini-bio */}
+  <p class="mt-3 flex-1 font-sans text-sm leading-relaxed text-ink-600">{doctor.miniBio}</p>
+
+  {/* CTA */}
+  <div class="mt-6 w-full">
+    <Button
+      href={waUrl ?? '#contato'}
+      target={waUrl ? '_blank' : undefined}
+      rel={waUrl ? 'noopener noreferrer' : undefined}
+      class="w-full"
+    >
+      Agendar consulta
+    </Button>
+  </div>
+
+  {/* Perfil completo */}
+  <div class="mt-4 w-full text-left">
+    <ProfileAccordion client:visible paragraphs={doctor.fullProfile} doctorName={doctor.name} />
+  </div>
+</article>

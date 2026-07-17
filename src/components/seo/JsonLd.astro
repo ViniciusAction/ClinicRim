@@ -1,0 +1,18 @@
+---
+/**
+ * Renderiza um ou mais blocos JSON-LD. Aceita um objeto único ou um array.
+ * O escape de `<` evita quebra do contexto <script> (defesa em profundidade,
+ * mesmo com dados controlados).
+ */
+type Schema = Record<string, unknown>;
+
+interface Props {
+  schema: Schema | Schema[];
+}
+
+const { schema } = Astro.props;
+const list = Array.isArray(schema) ? schema : [schema];
+const serialize = (s: Schema) => JSON.stringify(s).replace(/</g, '\\u003c');
+---
+
+{list.map((s) => <script type="application/ld+json" is:inline set:html={serialize(s)} />)}

@@ -1,0 +1,84 @@
+---
+import Section from '@/components/ui/Section.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import ReviewCard from '@/components/ui/ReviewCard.astro';
+import Button from '@/components/ui/Button.astro';
+import { getReviews } from '@/data/reviews';
+import { clinic } from '@/data/clinic';
+
+/**
+ * Seção — Prova Social. Estática (0 JS).
+ * Inclui uma faixa de plataformas de avaliação e os cards de depoimento.
+ * TODO: substituir o mock pela integração real (Google Meu Negócio / Doctoralia).
+ */
+const reviews = getReviews();
+const moreUrl = clinic.googleBusinessUrl || clinic.doctoraliaUrl || null;
+---
+
+<Section id="avaliacoes" labelledby="avaliacoes-heading" class="bg-gradient-to-b from-white to-azure-50/40">
+  <Container>
+    <div data-reveal="fade-up">
+      <SectionHeading
+        id="avaliacoes-heading"
+        eyebrow="Avaliações"
+        title="O que dizem nossos pacientes"
+        intro="Transparência é parte do nosso cuidado. Confira as experiências reais de pacientes que confiam sua saúde à nossa equipe, verificadas no Google Meu Negócio."
+      />
+    </div>
+    {/* Badges das plataformas de avaliação */}
+    <div data-reveal="zoom-in" class="mx-auto mt-10 flex max-w-md flex-wrap items-center justify-center gap-4">
+      <div class="flex items-center gap-2.5 rounded-full border border-ink-100 bg-ink-50 px-5 py-2.5">
+        {/* Google "G" colorido */}
+        <svg viewBox="0 0 24 24" class="size-5" aria-hidden="true">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        <span class="font-sans text-sm font-semibold text-ink-700">Google</span>
+        <div class="flex gap-0.5" aria-hidden="true">
+          {Array.from({ length: 5 }).map(() => (
+            <svg class="size-3.5 text-gold-400" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L10 14.77l-5.2 2.73.99-5.79L1.58 7.62l5.82-.85L10 1.5z"/>
+            </svg>
+          ))}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 rounded-full border border-ink-100 bg-ink-50 px-5 py-2.5">
+        {/* Doctoralia D */}
+        <span class="flex size-5 items-center justify-center rounded-full bg-[#00A698] font-sans text-xs font-bold text-white" aria-hidden="true">D</span>
+        <span class="font-sans text-sm font-semibold text-ink-700">Doctoralia</span>
+        <div class="flex gap-0.5" aria-hidden="true">
+          {Array.from({ length: 5 }).map(() => (
+            <svg class="size-3.5 text-gold-400" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L10 14.77l-5.2 2.73.99-5.79L1.58 7.62l5.82-.85L10 1.5z"/>
+            </svg>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Cards de avaliação (Layout Masonry) */}
+    <ul data-reveal-stagger class="mx-auto mt-16 max-w-6xl columns-1 gap-6 space-y-6 sm:columns-2 lg:columns-3">
+      {
+        reviews.map((review) => (
+          <li class="break-inside-avoid">
+            <ReviewCard review={review} />
+          </li>
+        ))
+      }
+    </ul>
+
+    {
+      moreUrl && (
+        <div class="mt-12 flex justify-center">
+          <Button href={moreUrl} variant="outline" target="_blank" rel="noopener noreferrer">
+            Ver todas as avaliações
+          </Button>
+        </div>
+      )
+    }
+  </Container>
+</Section>

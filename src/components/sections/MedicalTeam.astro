@@ -1,0 +1,35 @@
+---
+import Section from '@/components/ui/Section.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import DoctorCard from '@/components/ui/DoctorCard.astro';
+import { doctors } from '@/data/doctors';
+
+/**
+ * Seção 3 — Corpo Clínico.
+ * Grid de 3 cards claros com avatar circular flutuante sobre fundo ivory.
+ */
+---
+
+<Section id="especialistas" labelledby="especialistas-heading" class="bg-ivory">
+  <Container>
+    <div data-reveal="fade-up">
+      <SectionHeading
+        id="especialistas-heading"
+        eyebrow="Corpo Clínico"
+        title="Nossos Especialistas"
+        intro="Conheça os especialistas por trás do cuidado integrado e personalizado da Clínica Rim."
+      />
+    </div>
+
+    <ul data-reveal-stagger class="mx-auto mt-16 grid max-w-5xl gap-x-8 gap-y-16 sm:grid-cols-1 lg:grid-cols-3">
+      {
+        doctors.map((doctor) => (
+          <li>
+            <DoctorCard doctor={doctor} />
+          </li>
+        ))
+      }
+    </ul>
+  </Container>
+</Section>

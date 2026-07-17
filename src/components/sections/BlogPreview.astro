@@ -1,0 +1,44 @@
+---
+import Section from '@/components/ui/Section.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import PostCard from '@/components/ui/PostCard.astro';
+import Button from '@/components/ui/Button.astro';
+import { getPublishedPosts } from '@/lib/blog';
+
+/**
+ * Seção — Últimos artigos do blog na home. Estática (0 JS).
+ * Some sozinha enquanto não houver posts publicados (não quebra o layout).
+ */
+const posts = (await getPublishedPosts()).slice(0, 3);
+---
+
+{
+  posts.length > 0 && (
+    <Section id="blog" labelledby="blog-heading" class="bg-azure-50/60">
+      <Container>
+        <SectionHeading
+          data-reveal="fade-up"
+          id="blog-heading"
+          eyebrow="Blog"
+          title="Conteúdo que cuida de você"
+          intro="Artigos escritos pelos nossos especialistas para você entender melhor a sua saúde — sem jargão e com base em evidências."
+        />
+
+        <ul data-reveal-stagger class="mx-auto mt-14 grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => (
+            <li>
+              <PostCard post={post} />
+            </li>
+          ))}
+        </ul>
+
+        <div class="mt-12 flex justify-center">
+          <Button href="/blog" variant="outline">
+            Ver todos os artigos
+          </Button>
+        </div>
+      </Container>
+    </Section>
+  )
+}

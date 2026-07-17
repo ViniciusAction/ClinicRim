@@ -1,0 +1,48 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import PostCard from '@/components/ui/PostCard.astro';
+import { getPublishedPosts } from '@/lib/blog';
+import { SPECIALTIES, SPECIALTY_SLUGS, specialtyFromSlug } from '@/data/specialties';
+
+/**
+ * Uma página por especialidade — gerada sempre (mesmo sem posts ainda), boa
+ * para SEO de conteúdo médico segmentado (Nefrologia / Endocrinologia / Urologia).
+ */
+export async function getStaticPaths() {
+  return SPECIALTIES.map((specialty) => ({
+    params: { specialty: SPECIALTY_SLUGS[specialty] },
+  }));
+}
+
+const { specialty: slug } = Astro.params;
+const specialty = specialtyFromSlug(slug)!;
+
+const posts = (await getPublishedPosts()).filter((post) => post.data.specialty === specialty);
+---
+
+<BaseLayout
+  title={`Blog de ${specialty} — Clínica RIM`}
+  description={`Artigos sobre ${specialty} produzidos pela equipe da Clínica RIM.`}
+>
+  <Container as="section" class="py-16 sm:py-20">
+    <SectionHeading eyebrow="Blog" title={`Conteúdo de ${specialty}`} as="h1" />
+
+    {
+      posts.length === 0 ? (
+        <p class="mx-auto mt-12 max-w-xl text-center font-sans text-ink-500">
+          Em breve, novos artigos sobre {specialty}.
+        </p>
+      ) : (
+        <ul class="mx-auto mt-12 grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => (
+            <li>
+              <PostCard post={post} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </Container>
+</BaseLayout>

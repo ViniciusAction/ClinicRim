@@ -1,0 +1,53 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import PostCard from '@/components/ui/PostCard.astro';
+import { getPublishedPosts, paginatePosts } from '@/lib/blog';
+
+/**
+ * Página 1 da listagem do blog — SEMPRE existe (estática), mesmo sem posts
+ * publicados ainda, mostrando um estado vazio em vez de 404. Páginas 2+ são
+ * geradas dinamicamente em /blog/[page] apenas quando há posts suficientes.
+ */
+const posts = await getPublishedPosts();
+const { items, totalPages } = paginatePosts(posts, 1);
+---
+
+<BaseLayout
+  title="Blog — Clínica RIM"
+  description="Conteúdo médico sobre Nefrologia, Endocrinologia e Urologia produzido pela equipe da Clínica RIM."
+>
+  <Container as="section" class="py-16 sm:py-20">
+    <SectionHeading eyebrow="Blog" title="Conteúdo da Clínica RIM" as="h1" />
+
+    {
+      items.length === 0 ? (
+        <p class="mx-auto mt-12 max-w-xl text-center font-sans text-ink-500">
+          Em breve, novos artigos sobre Nefrologia, Endocrinologia e Urologia.
+        </p>
+      ) : (
+        <ul class="mx-auto mt-12 grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((post) => (
+            <li>
+              <PostCard post={post} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {
+      totalPages > 1 && (
+        <nav class="mt-12 flex justify-center" aria-label="Paginação do blog">
+          <a
+            href="/blog/2/"
+            class="rounded-full border border-ink-200 px-5 py-2.5 font-sans text-sm font-medium text-ink-700 hover:bg-ivory-100"
+          >
+            Próxima página
+          </a>
+        </nav>
+      )
+    }
+  </Container>
+</BaseLayout>
