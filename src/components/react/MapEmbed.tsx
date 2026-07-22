@@ -22,7 +22,7 @@ export default function MapEmbed({
   title = 'Mapa da localização da Clínica Rim',
 }: MapEmbedProps) {
   return (
-    <div className="relative h-full min-h-[300px] w-full overflow-hidden rounded-3xl bg-ink-900 shadow-xl shadow-ink-900/15">
+    <div className="relative h-full min-h-[300px] w-full overflow-hidden rounded-2xl bg-ink-900">
       {embedUrl ? (
         <iframe
           src={embedUrl}
@@ -76,7 +76,7 @@ export default function MapEmbed({
           href={placeUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute right-3 bottom-3 rounded-full bg-ivory/95 px-3.5 py-1.5 font-sans text-xs font-medium text-ink-900 shadow-sm hover:bg-ivory"
+          className="absolute right-3 bottom-3 rounded-md bg-ivory/95 px-3.5 py-1.5 font-sans text-xs font-medium text-ink-900 hover:bg-ivory"
         >
           Ver no Google Maps
         </a>

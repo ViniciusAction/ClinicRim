@@ -20,16 +20,16 @@ type SpecialtyKey = 'Nefrologia' | 'Endocrinologia' | 'Urologia';
 
 const specialtyConfig = {
   'Nefrologia': {
-    specialtyTx: 'text-azure-700',
+    specialtyTx: 'text-azure-300',
     avatarBg: 'bg-azure-600',
   },
   'Endocrinologia': {
-    specialtyTx: 'text-gold-700',
+    specialtyTx: 'text-gold-300',
     avatarBg: 'bg-gold-600',
   },
   'Urologia': {
-    specialtyTx: 'text-ink-600',
-    avatarBg: 'bg-ink-700',
+    specialtyTx: 'text-ink-300',
+    avatarBg: 'bg-ink-600',
   },
 } as const;
 
@@ -56,7 +56,7 @@ const initials = doctor.name
 const waUrl = buildWhatsappUrl(`Olá! Gostaria de falar com a equipe do(a) ${doctor.name}.`);
 ---
 
-<article class="relative flex h-full flex-col items-center rounded-3xl border border-ink-100 bg-white px-7 pb-8 pt-16 text-center shadow-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-ink-900/10">
+<article class="relative flex h-full flex-col items-center rounded-2xl border border-white/10 bg-ink-900 px-8 pb-9 pt-16 text-center transition-colors duration-300">
 
   {/* Avatar flutuante */}
   <div class="absolute -top-12 left-1/2 -translate-x-1/2">
@@ -66,33 +66,33 @@ const waUrl = buildWhatsappUrl(`Olá! Gostaria de falar com a equipe do(a) ${doc
         alt={`Foto profissional de ${doctor.name}`}
         width={112}
         height={112}
-        class="h-24 w-24 rounded-full object-cover ring-4 ring-white shadow-lg"
+        class="h-24 w-24 rounded-full object-cover ring-4 ring-ink-900"
       />
     ) : (
       <div
         class:list={[
-          'flex h-24 w-24 items-center justify-center rounded-full ring-4 ring-white shadow-lg',
+          'flex h-24 w-24 items-center justify-center rounded-full ring-4 ring-ink-900',
           cfg.avatarBg,
         ]}
       >
-        <span class="font-display text-2xl font-bold text-white" aria-hidden="true">{initials}</span>
+        <span class="font-display text-2xl font-medium text-white" aria-hidden="true">{initials}</span>
       </div>
     )}
   </div>
 
   {/* CRM/RQE */}
-  <p class="font-sans text-[11px] font-semibold tracking-wider text-ink-400 uppercase">
+  <p class="font-sans text-[11px] font-medium tracking-[0.12em] text-ink-300 uppercase">
     CRM {doctor.crm}&thinsp;·&thinsp;RQE {doctor.rqe}
   </p>
 
   {/* Nome */}
-  <h3 class="mt-1.5 font-display text-xl font-bold text-ink-900">{doctor.name}</h3>
+  <h3 class="mt-1.5 font-display text-xl font-medium text-white">{doctor.name}</h3>
 
   {/* Especialidade */}
-  <p class:list={['mt-1 font-sans text-sm font-semibold', cfg.specialtyTx]}>{doctor.role}</p>
+  <p class:list={['mt-1 font-sans text-sm font-medium', cfg.specialtyTx]}>{doctor.role}</p>
 
   {/* Mini-bio */}
-  <p class="mt-3 flex-1 font-sans text-sm leading-relaxed text-ink-600">{doctor.miniBio}</p>
+  <p class="mt-3 flex-1 font-sans text-sm leading-relaxed text-azure-100">{doctor.miniBio}</p>
 
   {/* CTA */}
   <div class="mt-6 w-full">
@@ -108,6 +108,6 @@ const waUrl = buildWhatsappUrl(`Olá! Gostaria de falar com a equipe do(a) ${doc
 
   {/* Perfil completo */}
   <div class="mt-4 w-full text-left">
-    <ProfileAccordion client:visible paragraphs={doctor.fullProfile} doctorName={doctor.name} />
+    <ProfileAccordion client:visible paragraphs={doctor.fullProfile} doctorName={doctor.name} inverted />
   </div>
 </article>

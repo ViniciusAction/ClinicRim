@@ -38,17 +38,9 @@ const eyebrowJustify = align === 'center' ? 'justify-center' : 'justify-start';
     eyebrow && (
       <p class={cn('mb-5 flex items-center', eyebrowJustify)}>
         <span
-          class={cn(
-            'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-sans text-[11px] font-bold tracking-[0.16em] uppercase',
-            inverted
-              ? 'border-azure-300/30 bg-azure-400/10 text-azure-200'
-              : 'border-azure-200 bg-azure-50 text-azure-700',
-          )}
+          class="inline-flex items-center gap-2 rounded-md border border-azure-400/30 bg-azure-400/10 px-3.5 py-1.5 font-sans text-[11px] font-medium tracking-[0.12em] text-azure-200 uppercase"
         >
-          <span
-            class={cn('size-1.5 rounded-full', inverted ? 'bg-azure-300' : 'bg-azure-500')}
-            aria-hidden="true"
-          />
+          <span class="size-1.5 rounded-full bg-azure-300" aria-hidden="true" />
           {eyebrow}
         </span>
       </p>
@@ -57,20 +49,14 @@ const eyebrowJustify = align === 'center' ? 'justify-center' : 'justify-start';
   <Heading
     id={id}
     class={cn(
-      'text-balance font-display text-3xl tracking-tight sm:text-4xl lg:text-[2.6rem] lg:leading-[1.15]',
-      inverted ? 'font-bold text-white' : 'font-semibold text-ink-900',
+      'text-balance font-display text-3xl leading-none font-medium tracking-tight text-white sm:text-4xl lg:text-[2.6rem]',
     )}
   >
     {title}
   </Heading>
   {
     intro && (
-      <p
-        class={cn(
-          'mt-5 text-pretty font-sans text-lg leading-relaxed',
-          inverted ? 'text-azure-100' : 'text-ink-600',
-        )}
-      >
+      <p class="mt-5 text-pretty font-sans text-lg leading-relaxed text-azure-100">
         {intro}
       </p>
     )

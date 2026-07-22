@@ -36,7 +36,7 @@ export interface Doctor {
 export const doctors: Doctor[] = [
   {
     id: 'dr-alexandre',
-    name: 'Dr. Alexandre Salvatore Pipino',
+    name: 'Dr. Alexandre Pipino',
     role: 'Nefrologista',
     specialty: 'Nefrologia',
     crm: '41.107',
@@ -68,7 +68,7 @@ export const doctors: Doctor[] = [
   },
   {
     id: 'dr-igor',
-    name: 'Dr. Igor Favoreto Fernandes de Oliveira',
+    name: 'Dr. Igor Favoreto',
     role: 'Urologista',
     specialty: 'Urologia',
     crm: '43.701',

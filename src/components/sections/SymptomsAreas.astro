@@ -16,23 +16,23 @@ import { symptomGroups, symptomsIntro } from '@/data/symptoms';
 const styles = [
   {
     stripe: 'bg-azure-400',
-    badge: 'bg-azure-50 text-azure-700 border border-azure-200',
+    badge: 'bg-azure-500/10 text-azure-300 border border-azure-500/30',
     dot: 'bg-azure-400',
   },
   {
     stripe: 'bg-gold-400',
-    badge: 'bg-gold-50 text-gold-700 border border-gold-200',
+    badge: 'bg-gold-500/10 text-gold-300 border border-gold-500/30',
     dot: 'bg-gold-400',
   },
   {
-    stripe: 'bg-ink-500',
-    badge: 'bg-ink-100 text-ink-700 border border-ink-200',
-    dot: 'bg-ink-500',
+    stripe: 'bg-ink-400',
+    badge: 'bg-white/5 text-ink-200 border border-white/15',
+    dot: 'bg-ink-400',
   },
 ] as const;
 ---
 
-<Section id="areas" labelledby="areas-heading" class="bg-white">
+<Section id="areas" labelledby="areas-heading" class="bg-ink-900">
   <Container>
     <div data-reveal="fade-up">
       <SectionHeading
@@ -48,21 +48,21 @@ const styles = [
         symptomGroups.map((group, i) => {
           const s = styles[i];
           return (
-            <div class="relative overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-sm transition-shadow hover:shadow-lg hover:shadow-ink-900/5">
+            <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-ink-950/40 transition-colors hover:border-azure-500/30">
               {/* Faixa colorida no topo — identificador visual da especialidade */}
               <div class={`h-1 w-full ${s.stripe}`} aria-hidden="true"></div>
 
-              <div class="p-7 pt-6">
-                <span class={`inline-block rounded-full px-3 py-1 font-sans text-xs font-semibold ${s.badge}`}>
+              <div class="p-8 pt-6">
+                <span class={`inline-block rounded-md px-3 py-1 font-sans text-xs font-medium ${s.badge}`}>
                   {group.specialty}
                 </span>
 
-                <h3 class="mt-5 font-display text-xl font-semibold text-ink-900">{group.title}</h3>
-                <p class="mt-2 font-sans text-sm leading-relaxed text-ink-500">{group.lead}</p>
+                <h3 class="mt-5 font-display text-xl font-medium text-white">{group.title}</h3>
+                <p class="mt-2 font-sans text-sm leading-relaxed text-ink-300">{group.lead}</p>
 
                 <ul class="mt-6 space-y-2.5" role="list">
                   {group.items.map((item) => (
-                    <li class="flex items-start gap-3 font-sans text-sm leading-relaxed text-ink-700">
+                    <li class="flex items-start gap-3 font-sans text-sm leading-relaxed text-azure-100">
                       <span class={`mt-[0.42rem] size-1.5 shrink-0 rounded-full ${s.dot}`} aria-hidden="true"></span>
                       {item}
                     </li>

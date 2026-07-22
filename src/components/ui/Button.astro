@@ -32,15 +32,15 @@ const {
 } = Astro.props;
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-full font-sans font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-md font-sans font-medium uppercase tracking-[0.08em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
 
 const variants = {
   primary:
-    'bg-azure-600 text-white shadow-sm shadow-azure-900/15 hover:bg-azure-500 hover:shadow-md focus-visible:ring-azure-500',
+    'bg-brand-glow text-white hover:brightness-110 focus-visible:ring-azure-500',
   secondary:
-    'bg-ink-900 text-ivory hover:bg-ink-800 focus-visible:ring-ink-700',
+    'bg-white/10 text-white hover:bg-white/15 focus-visible:ring-white/40',
   outline:
-    'border border-ink-200 bg-white/60 text-ink-900 hover:border-azure-300 hover:bg-azure-50 focus-visible:ring-azure-300',
+    'border border-white/20 bg-white/5 text-white hover:border-azure-400 hover:bg-white/10 focus-visible:ring-azure-400',
 };
 
 const sizes = {

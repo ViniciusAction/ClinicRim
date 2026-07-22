@@ -3,20 +3,22 @@
 
 /*
   -------------------------------------------------------------------------
-  TEMA DE MARCA — Clínica RIM (v2 "Clean Nephrology")
+  TEMA DE MARCA — Clínica RIM (v3 "Abismo Clínico")
   -------------------------------------------------------------------------
-  Direção: clínica de nefrologia moderna e limpa — muito respiro em branco,
-  azul-água (aqua) como cor primária (rim / água / filtração), petróleo
-  profundo para texto e superfícies escuras, e um toque de mel/areia apenas
-  em micro-acentos (estrelas de avaliação).
+  Direção: terminal clínico noturno — canvas quase-preto (ink-950/900)
+  dominando a página inteira, aqua bioluminescente como único acento de
+  destaque, mel/areia reservado a números grandes (estatísticas) e estrelas.
+  Tipografia grande, tracking largo em labels, zero sombra — a profundidade
+  vem só da variação tonal entre ink-950 (canvas) e ink-900 (cartão/painel).
 
-  ⚠️ Os NOMES dos tokens foram mantidos da v1 (ink / azure / gold / ivory)
-  para não quebrar as classes espalhadas nos componentes — apenas os VALORES
-  mudaram:
-    ink   → petróleo (azul-esverdeado profundo) — texto e footer/contato
-    azure → aqua clínico — cor primária de marca (CTAs, links, selos)
-    gold  → mel suave — acento mínimo (estrelas, detalhes quentes)
-    ivory → névoa fria quase branca — fundo padrão
+  ⚠️ Os NOMES dos tokens continuam os mesmos (ink / azure / gold / ivory);
+  o que mudou nesta passada foi o USO deles pelos componentes (fundo escuro
+  como padrão, não mais exceção):
+    ink   → petróleo profundo — agora é o CANVAS (950/900), não só texto
+    azure → aqua clínico — cor de acento/CTA, mais clara (300/400) sobre o
+            fundo escuro para manter contraste
+    gold  → mel suave — reservado a estatísticas grandes e estrelas
+    ivory → quase-branco — reservado a texto de alto contraste, não a fundo
 
   Tipografia: Sora (display, geométrica e precisa) + Manrope (corpo, humanista
   e muito legível) — carregadas via <link> no BaseHead.astro.
@@ -66,13 +68,32 @@
   --color-ivory-100: #edf3f5;
 }
 
-/* Atmosfera do Hero: fundo CLARO com lavagens radiais de aqua — leve e clínico */
+/* Gradiente "brand glow" — extraído do letreiro físico da recepção (o rim de
+   vidro/acrílico retroiluminado): núcleo quase-branco → aqua clara → aqua
+   profundo, como um brilho de luz saindo de dentro do símbolo. Usado nos
+   momentos de assinatura da marca (CTA principal, orbs do Hero, acento no
+   nome "Clínica Rim"). */
+.bg-brand-glow {
+  background: linear-gradient(135deg, var(--color-azure-400) 0%, var(--color-azure-600) 100%);
+}
+
+.text-brand-glow {
+  background: linear-gradient(180deg, #ffffff 0%, var(--color-azure-200) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Atmosfera do Hero: fundo PRETO liso (como a referência Dala). Um único glow
+   radial MUITO discreto atrás do par de rins — sem faixas/linhas que cruzem a
+   tela. */
 .bg-hero-mesh {
-  background-color: #ffffff;
-  background-image:
-    radial-gradient(ellipse 70% 55% at 85% 0%, color-mix(in oklab, var(--color-azure-100) 80%, transparent), transparent),
-    radial-gradient(ellipse 55% 45% at 0% 100%, color-mix(in oklab, var(--color-azure-50) 90%, transparent), transparent),
-    linear-gradient(180deg, #ffffff 0%, var(--color-ivory-DEFAULT) 100%);
+  background-color: #030b0c;
+  background-image: radial-gradient(
+    ellipse 42% 50% at 72% 48%,
+    color-mix(in oklab, var(--color-azure-600) 13%, transparent),
+    transparent 72%
+  );
 }
 
 /* Ondulações concêntricas (gotas d'água) — assinatura visual da nefrologia */
@@ -116,16 +137,65 @@
   50% { transform: translateY(-8px); }
 }
 
-/* Tratamento duotone aqua CLARO para fotos placeholder — mantém coesão de
-   marca sem escurecer a página (v1 usava navy pesado). */
+/* Respiração suave dos orbs de luz do Hero (independente do parallax por JS,
+   que só mexe em translate — a opacidade "pulsa" por conta própria). */
+@keyframes hero-orb-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.6; }
+}
+
+/* Transição de troca de médico no carrossel "Nossos Especialistas". */
+@keyframes team-fade {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Marquee (faixa rolante) das fotos da clínica na seção "Por que escolher".
+   A track contém a lista DUPLICADA; deslocar -50% cria loop sem emenda. */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  width: max-content;
+  animation: marquee-x linear infinite;
+}
+.marquee-row:hover .marquee-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+  .marquee-row {
+    overflow-x: auto;
+  }
+}
+
+/* Bolinha do indicador de scroll, descendo em loop dentro do "mouse". */
+@keyframes hero-scroll-dot {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { opacity: 0; }
+  100% { transform: translateY(14px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-orb,
+  [data-scroll-cue] .hero-scroll-dot {
+    animation: none !important;
+  }
+}
+
+/* Tratamento duotone aqua sutil para fotos — leve coesão de marca sem parecer
+   filtro de rede social (reduzido após feedback do cliente). */
 .duotone-navy::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     160deg,
-    color-mix(in oklab, var(--color-azure-700) 30%, transparent) 0%,
-    color-mix(in oklab, var(--color-azure-300) 18%, transparent) 100%
+    color-mix(in oklab, var(--color-azure-700) 14%, transparent) 0%,
+    color-mix(in oklab, var(--color-azure-300) 7%, transparent) 100%
   );
   mix-blend-mode: multiply;
   pointer-events: none;

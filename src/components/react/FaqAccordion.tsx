@@ -31,7 +31,7 @@ function ChevronDown() {
 
 function AnswerContent({ blocks }: { blocks: AnswerBlock[] }) {
   return (
-    <div className="space-y-3 px-6 pt-2 pb-6 font-sans text-sm leading-relaxed text-ink-600">
+    <div className="space-y-3 px-6 pt-2 pb-6 font-sans text-sm leading-relaxed text-azure-100">
       {blocks.map((block, i) =>
         block.type === 'paragraph' ? (
           <p key={i}>{block.text}</p>
@@ -52,13 +52,13 @@ export default function FaqAccordion({ categories }: FaqAccordionProps) {
   const current = categories.find((c) => c.title === activeCategory) ?? categories[0];
 
   return (
-    <div className="mx-auto mt-14 max-w-5xl overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-sm">
+    <div className="mx-auto mt-14 max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-ink-900">
       <div className="flex flex-col lg:flex-row">
 
         {/* ── Sidebar de categorias ── */}
-        <div className="border-b border-ink-100 bg-ivory lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r">
+        <div className="border-b border-white/10 bg-ink-950/40 lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-r">
           <div className="p-4">
-            <p className="mb-3 px-3 font-sans text-[10px] font-bold tracking-[0.18em] text-ink-400 uppercase">
+            <p className="mb-3 px-3 font-sans text-[10px] font-medium tracking-[0.15em] text-ink-300 uppercase">
               Categorias
             </p>
             <nav aria-label="Categorias do FAQ">
@@ -70,15 +70,15 @@ export default function FaqAccordion({ categories }: FaqAccordionProps) {
                     onClick={() => setActiveCategory(cat.title)}
                     aria-current={isActive ? 'true' : undefined}
                     className={[
-                      'group relative block w-full rounded-xl px-4 py-3 text-left font-sans text-sm transition-all',
+                      'group relative block w-full rounded-md px-4 py-3 text-left font-sans text-sm transition-all',
                       isActive
-                        ? 'bg-azure-50 font-bold text-azure-800'
-                        : 'font-semibold text-ink-600 hover:bg-white hover:text-ink-900',
+                        ? 'bg-azure-500/10 font-medium text-azure-300'
+                        : 'font-medium text-azure-100/70 hover:bg-white/5 hover:text-white',
                     ].join(' ')}
                   >
                     {isActive && (
                       <span
-                        className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-azure-500"
+                        className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-azure-400"
                         aria-hidden="true"
                       />
                     )}
@@ -86,8 +86,8 @@ export default function FaqAccordion({ categories }: FaqAccordionProps) {
                       {cat.title}
                       <span
                         className={[
-                          'shrink-0 rounded-full px-1.5 py-0.5 font-sans text-[10px] font-bold tabular-nums',
-                          isActive ? 'bg-azure-200/70 text-azure-800' : 'bg-ink-100 text-ink-500',
+                          'shrink-0 rounded-md px-1.5 py-0.5 font-sans text-[10px] font-medium tabular-nums',
+                          isActive ? 'bg-azure-500/20 text-azure-200' : 'bg-white/10 text-ink-300',
                         ].join(' ')}
                       >
                         {cat.items.length}
@@ -99,8 +99,8 @@ export default function FaqAccordion({ categories }: FaqAccordionProps) {
             </nav>
           </div>
 
-          <div className="border-t border-ink-100 px-7 py-4">
-            <p className="font-sans text-[11px] text-ink-400">
+          <div className="border-t border-white/10 px-7 py-4">
+            <p className="font-sans text-[11px] text-ink-300">
               {categories.reduce((acc, c) => acc + c.items.length, 0)} perguntas no total
             </p>
           </div>
@@ -109,11 +109,11 @@ export default function FaqAccordion({ categories }: FaqAccordionProps) {
         {/* ── Acordeão da categoria ativa ── */}
         <div className="flex-1 p-4 lg:p-7">
           <div className="mb-5 flex items-center gap-3">
-            <span className="h-px flex-1 bg-ink-100" aria-hidden="true" />
-            <h3 className="font-display text-xs font-semibold tracking-widest text-azure-700 uppercase">
+            <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
+            <h3 className="font-display text-xs font-medium tracking-[0.15em] text-azure-300 uppercase">
               {current?.title}
             </h3>
-            <span className="h-px flex-1 bg-ink-100" aria-hidden="true" />
+            <span className="h-px flex-1 bg-white/10" aria-hidden="true" />
           </div>
 
           <Accordion.Root type="single" collapsible className="space-y-2.5">
@@ -123,10 +123,10 @@ export default function FaqAccordion({ categories }: FaqAccordionProps) {
                 <Accordion.Item
                   key={value}
                   value={value}
-                  className="overflow-hidden rounded-2xl border border-ink-100 bg-ivory/60 transition-colors data-[state=open]:border-azure-200 data-[state=open]:bg-azure-50/50"
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-ink-950/40 transition-colors data-[state=open]:border-azure-500/30 data-[state=open]:bg-azure-500/5"
                 >
                   <Accordion.Header className="m-0">
-                    <Accordion.Trigger className="group flex w-full items-center justify-between gap-4 px-6 py-4 text-left font-sans text-sm font-bold text-ink-800 transition-colors hover:text-azure-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-azure-400">
+                    <Accordion.Trigger className="group flex w-full items-center justify-between gap-4 px-6 py-4 text-left font-sans text-sm font-medium text-white transition-colors hover:text-azure-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-azure-400">
                       <span>{item.question}</span>
                       <span className="shrink-0 text-azure-500 transition-transform duration-200 group-data-[state=open]:rotate-180">
                         <ChevronDown />

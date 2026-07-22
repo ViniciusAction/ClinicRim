@@ -105,21 +105,21 @@ export default function ContactForm({ whatsappNumber }: ContactFormProps) {
     <Tabs.Root
       value={tab}
       onValueChange={handleTabChange}
-      className="mx-auto max-w-xl rounded-3xl border border-ink-100 bg-white p-7 shadow-xl shadow-ink-900/5 sm:p-9"
+      className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-ink-900 p-8 sm:p-9"
     >
       <Tabs.List
         aria-label="Tipo de contato"
-        className="grid grid-cols-2 gap-2 rounded-full bg-ivory-100 p-1"
+        className="grid grid-cols-2 gap-2 rounded-md bg-white/5 p-1"
       >
         <Tabs.Trigger
           value="paciente"
-          className="rounded-full px-4 py-2.5 font-sans text-sm font-semibold text-ink-500 transition-colors focus-visible:ring-2 focus-visible:ring-azure-400 focus-visible:outline-none data-[state=active]:bg-ink-900 data-[state=active]:text-ivory data-[state=active]:shadow-sm"
+          className="rounded-md px-4 py-2.5 font-sans text-sm font-medium text-azure-100/70 transition-colors focus-visible:ring-2 focus-visible:ring-azure-400 focus-visible:outline-none data-[state=active]:bg-azure-600 data-[state=active]:text-white"
         >
           Sou Paciente
         </Tabs.Trigger>
         <Tabs.Trigger
           value="medico"
-          className="rounded-full px-4 py-2.5 font-sans text-sm font-semibold text-ink-500 transition-colors focus-visible:ring-2 focus-visible:ring-azure-400 focus-visible:outline-none data-[state=active]:bg-ink-900 data-[state=active]:text-ivory data-[state=active]:shadow-sm"
+          className="rounded-md px-4 py-2.5 font-sans text-sm font-medium text-azure-100/70 transition-colors focus-visible:ring-2 focus-visible:ring-azure-400 focus-visible:outline-none data-[state=active]:bg-azure-600 data-[state=active]:text-white"
         >
           Sou Médico
         </Tabs.Trigger>
@@ -128,7 +128,7 @@ export default function ContactForm({ whatsappNumber }: ContactFormProps) {
       {!canSend && (
         <p
           role="status"
-          className="mt-4 rounded-2xl border border-gold-200 bg-gold-50 px-4 py-3 font-sans text-sm text-gold-700"
+          className="mt-4 rounded-2xl border border-gold-500/30 bg-gold-500/10 px-4 py-3 font-sans text-sm text-gold-300"
         >
           O envio por WhatsApp será habilitado assim que o número de contato da clínica for
           configurado.
@@ -317,11 +317,11 @@ export default function ContactForm({ whatsappNumber }: ContactFormProps) {
 
 function inputClass(hasError: boolean) {
   return [
-    'block w-full rounded-xl border bg-white px-4 py-2.5 font-sans text-sm text-ink-900 shadow-sm transition-colors',
+    'block w-full rounded-md border bg-white/5 px-4 py-2.5 font-sans text-sm text-white transition-colors',
     'focus:outline-none focus:ring-2 focus:ring-offset-0',
     hasError
       ? 'border-red-400 focus:ring-red-400'
-      : 'border-ink-200 focus:border-azure-400 focus:ring-azure-400',
+      : 'border-white/15 focus:border-azure-400 focus:ring-azure-400',
   ].join(' ');
 }
 
@@ -339,7 +339,7 @@ function Field({
   const errorId = `${id}-error`;
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block font-sans text-sm font-medium text-ink-900">
+      <label htmlFor={id} className="mb-1.5 block font-sans text-sm font-medium text-white">
         {label}
       </label>
       {/* clona o filho único para injetar aria-* sem repetir os atributos em cada caller */}
@@ -374,12 +374,12 @@ function ConsentCheckbox({
         <input
           id={id}
           type="checkbox"
-          className="mt-0.5 size-4 shrink-0 rounded border-ink-300 text-azure-600 focus:ring-azure-400"
+          className="mt-0.5 size-4 shrink-0 rounded border-white/20 bg-white/5 text-azure-600 focus:ring-azure-400"
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? errorId : undefined}
           {...register('consentimento')}
         />
-        <label htmlFor={id} className="font-sans text-sm leading-relaxed text-ink-600">
+        <label htmlFor={id} className="font-sans text-sm leading-relaxed text-azure-100">
           {LGPD_PLACEHOLDER_TEXT}
         </label>
       </div>
@@ -405,7 +405,7 @@ function SubmitButton({
     <button
       type="submit"
       disabled={disabled || isSubmitting}
-      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-azure-600 px-5 font-sans text-sm font-semibold text-white shadow-sm shadow-azure-900/15 transition-all hover:bg-azure-500 hover:shadow-md focus-visible:ring-2 focus-visible:ring-azure-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-azure-600 px-5 font-sans text-sm font-medium uppercase tracking-[0.08em] text-white transition-all hover:bg-azure-500 focus-visible:ring-2 focus-visible:ring-azure-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
     >
       {isSubmitting ? 'Enviando…' : label}
     </button>
@@ -417,14 +417,14 @@ function StatusMessage({ status }: { status: 'idle' | 'success' | 'error' }) {
 
   if (status === 'success') {
     return (
-      <p role="status" className="rounded-2xl bg-green-50 px-4 py-3 font-sans text-sm text-green-800">
+      <p role="status" className="rounded-2xl bg-green-500/10 px-4 py-3 font-sans text-sm text-green-300">
         Mensagem pronta! Continue o envio pelo WhatsApp que abrimos para você.
       </p>
     );
   }
 
   return (
-    <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 font-sans text-sm text-red-700">
+    <p role="alert" className="rounded-2xl bg-red-500/10 px-4 py-3 font-sans text-sm text-red-300">
       Não foi possível abrir o WhatsApp agora. Tente novamente em instantes.
     </p>
   );

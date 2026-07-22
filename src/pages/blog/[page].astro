@@ -44,7 +44,7 @@ const { items, currentPage, totalPages } = paginatePosts(posts, Number(page));
     <nav class="mt-12 flex justify-center gap-3" aria-label="Paginação do blog">
       <a
         href={currentPage - 1 === 1 ? '/blog/' : `/blog/${currentPage - 1}/`}
-        class="rounded-full border border-ink-200 px-5 py-2.5 font-sans text-sm font-medium text-ink-700 hover:bg-ivory-100"
+        class="rounded-md border border-white/15 px-5 py-2.5 font-sans text-sm font-medium text-white hover:bg-white/5"
       >
         Página anterior
       </a>
@@ -52,7 +52,7 @@ const { items, currentPage, totalPages } = paginatePosts(posts, Number(page));
         currentPage < totalPages && (
           <a
             href={`/blog/${currentPage + 1}/`}
-            class="rounded-full border border-ink-200 px-5 py-2.5 font-sans text-sm font-medium text-ink-700 hover:bg-ivory-100"
+            class="rounded-md border border-white/15 px-5 py-2.5 font-sans text-sm font-medium text-white hover:bg-white/5"
           >
             Próxima página
           </a>

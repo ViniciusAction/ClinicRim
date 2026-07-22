@@ -1,19 +1,17 @@
 ---
+import type { ImageMetadata } from 'astro';
 import { Image } from 'astro:assets';
 import Section from '@/components/ui/Section.astro';
 import Container from '@/components/ui/Container.astro';
 import SectionHeading from '@/components/ui/SectionHeading.astro';
-import aboutPhoto from '@/assets/photos/about.jpg';
 
 /**
- * Seção 2 — Sobre a Clínica / Diferenciais. Estática (0 JS).
+ * Seção 2 — "Por que escolher a Clínica Rim?" (Sobre / Diferenciais).
  *
- * ⚠️ CONTEÚDO VERBATIM. Os diferenciais vêm no formato "Título: descrição".
- * Interpretação de UX: renderizo o título como cabeçalho do card e a descrição
- * como parágrafo (o ":" vira hierarquia visual). As PALAVRAS são idênticas ao
- * original. Se preferir o ":" literal inline, é uma troca de uma linha.
- *
- * Imagem: PLACEHOLDER (mockup de layout) — ver nota de imagens no rodapé do projeto.
+ * Visual revamp: uma faixa dupla (marquee) de fotos reais da clínica rolando
+ * em sentidos opostos, ocupando a largura toda — mostra bastante ambiente sem
+ * ocupar espaço vertical demais. Abaixo, os diferenciais em grade de cards.
+ * ⚠️ CONTEÚDO (títulos/descrições) VERBATIM.
  */
 const differentials = [
   {
@@ -37,69 +35,97 @@ const differentials = [
       'Nossa missão é oferecer um acolhimento com profundidade. Respeitamos a sua singularidade, integrando ciência de alta qualidade com sensibilidade.',
   },
 ];
+
+// Fotos da clínica para o marquee.
+const clinicModules = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/photos/clinica/*.{jpg,jpeg,png,webp}',
+  { eager: true },
+);
+function pick(nums: number[]): ImageMetadata[] {
+  return nums
+    .map((n) => {
+      const id = String(n).padStart(3, '0');
+      const entry = Object.entries(clinicModules).find(([p]) => p.includes(`clinica-${id}.`));
+      return entry?.[1]?.default;
+    })
+    .filter((x): x is ImageMetadata => Boolean(x));
+}
+const row1 = pick([3, 1, 40, 5, 4, 14, 50, 60]);
+const row2 = pick([70, 80, 90, 100, 110, 2, 42, 120]);
 ---
 
-<Section id="sobre" labelledby="sobre-heading" class="bg-white">
-  <Container class="grid items-center gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
-    <div data-reveal="fade-right" class="relative">
-      <div class="relative aspect-[4/5] overflow-hidden rounded-3xl">
-        <Image
-          src={aboutPhoto}
-          alt=""
-          width={700}
-          height={875}
-          class="h-full w-full object-cover"
-        />
-        <div class="duotone-navy absolute inset-0"></div>
-      </div>
-      <div
-        class="absolute -bottom-6 -left-6 hidden rounded-2xl border border-azure-100 bg-white px-6 py-4 shadow-xl shadow-ink-900/10 sm:block"
-      >
-        <p class="font-display text-3xl font-semibold text-azure-700">3</p>
-        <p class="font-sans text-xs tracking-wide text-ink-500 uppercase">Especialidades Integradas</p>
-      </div>
-    </div>
-
-    <div data-reveal="fade-left">
+<Section id="sobre" labelledby="sobre-heading" class="overflow-hidden bg-ink-900">
+  <Container>
+    <div data-reveal="fade-up">
       <SectionHeading
         id="sobre-heading"
         eyebrow="Sobre a Clínica"
         title="Por que escolher a Clínica Rim?"
         intro="Nossa prática médica nasce do equilíbrio entre excelência técnica e atendimento individualizado. Queremos diminuir a fragmentação da medicina atual, oferecendo um espaço focado no diálogo interprofissional e na real necessidade de cada paciente."
-        align="left"
-        class="max-w-none"
       />
+    </div>
+  </Container>
 
-      <ul class="mt-10 space-y-6" data-reveal-stagger>
+  {/* ── Marquee de fotos da clínica (largura total, dois sentidos) ── */}
+  <div class="mt-14 flex flex-col gap-5" data-reveal="fade-up" data-reveal-delay="100">
+    <div class="marquee-row overflow-hidden">
+      <div class="marquee-track flex gap-5" style="animation-duration: 65s;">
         {
-          differentials.map((item) => (
-            <li class="flex items-start gap-4 border-b border-ink-100 pb-6 last:border-b-0 last:pb-0">
-              <span
-                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-azure-50 text-azure-700"
-                aria-hidden="true"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              </span>
-              <div>
-                <h3 class="font-display text-xl font-semibold text-ink-900">{item.title}</h3>
-                <p class="mt-1.5 font-sans text-ink-600">{item.description}</p>
-              </div>
-            </li>
+          [...row1, ...row1].map((photo, i) => (
+            <div class="relative h-48 w-72 shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-56 sm:w-80">
+              <Image
+                src={photo}
+                alt={i < row1.length ? 'Ambiente da Clínica Rim' : ''}
+                width={640}
+                class="h-full w-full object-cover"
+              />
+            </div>
           ))
         }
-      </ul>
+      </div>
     </div>
+    <div class="marquee-row overflow-hidden">
+      <div class="marquee-track flex gap-5" style="animation-duration: 80s; animation-direction: reverse;">
+        {
+          [...row2, ...row2].map((photo) => (
+            <div class="relative h-48 w-72 shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:h-56 sm:w-80">
+              <Image src={photo} alt="" width={640} class="h-full w-full object-cover" />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  {/* ── Diferenciais em grade ── */}
+  <Container>
+    <ul class="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" data-reveal-stagger>
+      {
+        differentials.map((item) => (
+          <li class="rounded-2xl border border-white/10 bg-ink-950/40 p-7 transition-colors hover:border-azure-500/30">
+            <span
+              class="flex size-10 items-center justify-center rounded-md bg-azure-500/15 text-azure-300"
+              aria-hidden="true"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </span>
+            <h3 class="mt-5 font-display text-lg font-medium text-white">{item.title}</h3>
+            <p class="mt-2 font-sans text-sm leading-relaxed text-azure-100">{item.description}</p>
+          </li>
+        ))
+      }
+    </ul>
   </Container>
 </Section>

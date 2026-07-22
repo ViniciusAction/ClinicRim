@@ -29,7 +29,7 @@ export default function ProfileAccordion({
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
         className={[
-          'flex w-full items-center justify-between gap-3 rounded-lg text-left font-sans text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azure-400',
+          'flex w-full items-center justify-between gap-3 rounded-md text-left font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azure-400',
           inverted
             ? 'text-azure-300 hover:text-azure-100'
             : 'text-azure-700 hover:text-azure-900',

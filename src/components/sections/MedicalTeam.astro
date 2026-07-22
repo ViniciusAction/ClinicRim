@@ -1,35 +1,52 @@
 ---
+import type { ImageMetadata } from 'astro';
+import { getImage } from 'astro:assets';
 import Section from '@/components/ui/Section.astro';
-import Container from '@/components/ui/Container.astro';
-import SectionHeading from '@/components/ui/SectionHeading.astro';
-import DoctorCard from '@/components/ui/DoctorCard.astro';
+import DoctorsCarousel, { type CarouselDoctor } from '@/components/react/DoctorsCarousel.tsx';
 import { doctors } from '@/data/doctors';
+import { buildWhatsappUrl } from '@/lib/utils/whatsapp';
 
 /**
  * Seção 3 — Corpo Clínico.
- * Grid de 3 cards claros com avatar circular flutuante sobre fundo ivory.
+ * Carrossel em destaque (estilo "Our team" da Dala): foto grande central,
+ * nome/especialidade ao lado, setas para navegar. Fotos reais dos médicos.
  */
+const photoModules = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/doctors/*.{jpg,jpeg,png,webp}',
+  { eager: true },
+);
+
+const items: CarouselDoctor[] = await Promise.all(
+  doctors.map(async (d) => {
+    const entry = Object.entries(photoModules).find(([path]) => path.includes(`/${d.photoId}.`));
+    const img = entry?.[1]?.default;
+    const optimized = img ? await getImage({ src: img, width: 720, format: 'webp' }) : null;
+    const wa = buildWhatsappUrl(`Olá! Gostaria de agendar uma consulta com ${d.name}.`);
+    return {
+      id: d.id,
+      name: d.name,
+      role: d.role,
+      specialty: d.specialty,
+      crm: d.crm,
+      rqe: d.rqe,
+      miniBio: d.miniBio,
+      photo: optimized?.src ?? null,
+      photoW: optimized?.attributes.width ?? 720,
+      photoH: optimized?.attributes.height ?? 900,
+      wa: wa ?? null,
+    };
+  }),
+);
 ---
 
-<Section id="especialistas" labelledby="especialistas-heading" class="bg-ivory">
-  <Container>
-    <div data-reveal="fade-up">
-      <SectionHeading
-        id="especialistas-heading"
-        eyebrow="Corpo Clínico"
-        title="Nossos Especialistas"
-        intro="Conheça os especialistas por trás do cuidado integrado e personalizado da Clínica Rim."
-      />
-    </div>
-
-    <ul data-reveal-stagger class="mx-auto mt-16 grid max-w-5xl gap-x-8 gap-y-16 sm:grid-cols-1 lg:grid-cols-3">
-      {
-        doctors.map((doctor) => (
-          <li>
-            <DoctorCard doctor={doctor} />
-          </li>
-        ))
-      }
-    </ul>
-  </Container>
+<Section id="especialistas" labelledby="especialistas-heading" class="overflow-hidden bg-ink-950">
+  <div data-reveal="fade-up">
+    <DoctorsCarousel
+      client:visible
+      eyebrow="Corpo Clínico"
+      title="Nossos Especialistas"
+      intro="Conheça os especialistas por trás do cuidado integrado e personalizado da Clínica Rim."
+      doctors={items}
+    />
+  </div>
 </Section>

@@ -1,24 +1,37 @@
 ---
 import Container from '@/components/ui/Container.astro';
 import Button from '@/components/ui/Button.astro';
+import HeroKidney from '@/components/react/HeroKidney.tsx';
 import { SPECIALTIES } from '@/data/specialties';
 import { buildWhatsappUrl } from '@/lib/utils/whatsapp';
 
 /**
- * Seção 1 — Primeira Dobra. Estática (0 JS).
- * v2 "Clean Nephrology": fundo CLARO com lavagens aqua, copy à esquerda e
- * painel visual à direita (ondulações d'água + símbolo do rim + chips das
- * especialidades). ⚠️ Headline e subheadline são VERBATIM.
+ * Seção 1 — Primeira Dobra.
+ * v5 "Abismo Clínico + rim de partículas": canvas quase-preto com glows aqua,
+ * copy à esquerda e, à direita, a assinatura visual da marca — um rim formado
+ * por milhares de partículas WebGL (HeroKidney) que se formam na entrada,
+ * flutuam e giram reagindo ao mouse/scroll (inspirado no hero da Dala).
+ * Parallax dos orbs/cartão e tilt do painel via script inline; o rim é uma
+ * ilha React (client:load, acima da dobra).
+ * Headline/subheadline e checklist revisados por feedback do cliente.
  */
 const waUrl = buildWhatsappUrl('Olá! Gostaria de agendar uma consulta na Clínica Rim.');
 const ctaHref = waUrl ?? '#contato';
 const ctaTarget = waUrl ? '_blank' : undefined;
 const ctaRel = waUrl ? 'noopener noreferrer' : undefined;
 
-const trustItems = ['Equipe titulada (CRM/RQE)', 'Consultas sem pressa', 'Cuidado integrado'];
+const trustItems = [
+  'Especialistas titulados (RQE)',
+  'Consultas individualizadas',
+  'Cuidado integrado',
+  'Foco no paciente',
+];
 ---
 
-<section id="inicio" class="bg-hero-mesh relative scroll-mt-20 overflow-hidden">
+<section
+  id="inicio"
+  class="bg-hero-mesh relative flex min-h-[100svh] scroll-mt-20 items-center overflow-hidden"
+>
   {/* Grade pontilhada sutil no canto superior esquerdo */}
   <div
     class="bg-dot-grid pointer-events-none absolute top-0 left-0 h-72 w-72 [mask-image:radial-gradient(closest-side,black,transparent)] opacity-40"
@@ -26,37 +39,50 @@ const trustItems = ['Equipe titulada (CRM/RQE)', 'Consultas sem pressa', 'Cuidad
   >
   </div>
 
-  <Container class="relative w-full py-20 sm:py-24 lg:py-28">
-    <div class="grid items-center gap-14 lg:grid-cols-[1.1fr_0.9fr] xl:gap-20">
+  {/* ── Par de rins em tela cheia (grande), deslocado para a direita ── */}
+  <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+    <HeroKidney client:load class="h-full w-full" />
+  </div>
+
+  {/* Degradê escuro à esquerda: garante leitura do texto sem "colar" nos rins */}
+  <div
+    class="pointer-events-none absolute inset-y-0 left-0 z-[1] hidden w-3/5 bg-gradient-to-r from-[#030b0c] via-[#030b0c]/85 to-transparent lg:block"
+    aria-hidden="true"
+  >
+  </div>
+
+  <Container class="relative z-10 w-full py-24 sm:py-28 lg:py-32">
+    <div class="max-w-2xl">
       {/* ── Coluna principal ── */}
-      <div class="min-w-0 text-center lg:text-left">
+      <div data-hero-content class="min-w-0 text-center lg:text-left">
         <p
           data-reveal="fade-down"
-          class="border-azure-200 text-azure-700 mb-6 inline-flex items-center gap-2 rounded-full border bg-white/70 px-4 py-1.5 font-sans text-xs font-bold tracking-[0.18em] uppercase backdrop-blur-sm"
+          data-parallax="0.12"
+          class="border-azure-400/30 text-azure-200 mb-6 inline-flex items-center gap-2 rounded-md border bg-white/5 px-4 py-1.5 font-sans text-xs font-medium tracking-[0.12em] uppercase backdrop-blur-sm"
         >
-          <span class="bg-azure-500 size-1.5 rounded-full" aria-hidden="true"></span>
+          <span class="bg-azure-400 size-1.5 rounded-full" aria-hidden="true"></span>
           Londrina, Paraná
         </p>
 
         <h1
           data-reveal="fade-up"
-          class="font-display text-ink-900 text-[2rem] leading-[1.14] font-semibold tracking-tight text-balance sm:text-4xl lg:text-[2.6rem] xl:text-[3rem]"
+          class="font-display text-5xl leading-none font-medium tracking-tight text-balance text-white sm:text-6xl lg:text-7xl"
         >
-          Sua saúde renal em boas mãos. Clínica Rim
+          Clínica Rim Saúde renal com cuidado integral
         </h1>
 
         <p
-          data-reveal="fade-up" data-reveal-delay="100"
-          class="text-ink-600 mx-auto mt-6 max-w-xl font-sans text-lg leading-relaxed text-pretty lg:mx-0"
+          data-reveal="fade-up"
+          data-reveal-delay="100"
+          class="text-azure-100 mx-auto mt-8 max-w-xl font-sans text-lg leading-relaxed text-pretty lg:mx-0"
         >
-          Aqui você encontra soluções de saúde coordenadas por especialistas renomados em
-          Nefrologia, Endocrinologia e Urologia. Unimos ciência rigorosa, escuta atenta e
-          compromisso com o seu bem-estar, sem reduzir você a um simples diagnóstico ou papel de
-          exame.
+          Unimos ciência, escuta atenta e compromisso com o seu bem-estar. Aqui você encontra
+          soluções coordenadas em Nefrologia, Endocrinologia e Urologia.
         </p>
 
         <div
-          data-reveal="fade-up" data-reveal-delay="200"
+          data-reveal="fade-up"
+          data-reveal-delay="200"
           class="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start"
         >
           <Button href={ctaHref} target={ctaTarget} rel={ctaRel} size="lg">
@@ -64,7 +90,7 @@ const trustItems = ['Equipe titulada (CRM/RQE)', 'Consultas sem pressa', 'Cuidad
           </Button>
           <a
             href="/#especialistas"
-            class="text-azure-700 hover:text-azure-500 inline-flex h-13 items-center gap-2 rounded-full px-6 font-sans text-sm font-bold transition-colors"
+            class="text-azure-300 inline-flex h-13 items-center gap-2 rounded-md px-6 font-sans text-sm font-medium transition-colors hover:text-white"
           >
             Conhecer especialistas
             <svg
@@ -84,15 +110,16 @@ const trustItems = ['Equipe titulada (CRM/RQE)', 'Consultas sem pressa', 'Cuidad
 
         {/* Indicadores de confiança */}
         <ul
-          data-reveal="fade-in" data-reveal-delay="300"
-          class="border-ink-100 mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 border-t pt-7 lg:justify-start"
+          data-reveal="fade-in"
+          data-reveal-delay="300"
+          class="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 border-t border-white/10 pt-7 lg:justify-start"
           aria-label="Diferenciais da clínica"
         >
           {
             trustItems.map((item) => (
-              <li class="text-ink-600 flex items-center gap-2 font-sans text-sm font-semibold">
+              <li class="text-azure-100 flex items-center gap-2 font-sans text-sm font-medium">
                 <span
-                  class="bg-azure-100 text-azure-700 flex size-5 items-center justify-center rounded-full"
+                  class="bg-azure-500/15 text-azure-300 flex size-5 items-center justify-center rounded-full"
                   aria-hidden="true"
                 >
                   <svg
@@ -114,110 +141,94 @@ const trustItems = ['Equipe titulada (CRM/RQE)', 'Consultas sem pressa', 'Cuidad
         </ul>
       </div>
 
-      {/* ── Painel visual (decorativo) ── */}
-      <div data-reveal="fade-left" class="relative mx-auto hidden w-full max-w-md lg:block" aria-hidden="true">
-        <div
-          class="border-azure-100 shadow-azure-900/5 relative overflow-hidden rounded-[2.5rem] border bg-white/70 p-10 shadow-xl backdrop-blur-sm"
-        >
-          {/* Ondulações d'água centradas atrás do símbolo */}
-          <div class="bg-ripples absolute inset-0 opacity-80"></div>
-
-          {/* Símbolo do rim em traço aqua */}
-          <div class="relative mx-auto flex size-64 items-center justify-center">
-            <div
-              class="border-azure-300/50 absolute inset-0 rounded-full border border-dashed"
-              style="animation: slow-spin 60s linear infinite;"
-            >
-            </div>
-            <div class="bg-azure-50/90 absolute inset-8 rounded-full"></div>
-            <svg viewBox="0 0 96 96" class="text-azure-600 relative size-32" fill="none">
-              {/* Rim estilizado (feijão com hilo) */}
-              <path
-                d="M60 10c-19 0-34 16-34 37 0 16 9 27 21 31 6 2 12 2 17-1-6-4-9-10-9-17 0-8 5-13 11-16 8-4 14-11 14-19C80 15 71 10 60 10Z"
-                stroke="currentColor"
-                stroke-width="4"
-                stroke-linejoin="round"></path>
-              {/* Gota interna */}
-              <path
-                d="M46 46c0-6 8-15 8-15s8 9 8 15a8 8 0 0 1-16 0Z"
-                fill="currentColor"
-                opacity="0.35"></path>
-              <path
-                d="M22 78c8 6 20 8 30 4"
-                stroke="currentColor"
-                stroke-width="4"
-                stroke-linecap="round"
-                opacity="0.4"></path>
-            </svg>
-          </div>
-
-          {/* Chips das especialidades */}
-          <ul class="relative mt-8 flex flex-wrap items-center justify-center gap-2.5">
-            {
-              SPECIALTIES.map((s, i) => (
-                <li
-                  class="border-azure-200 text-azure-800 rounded-full border bg-white px-4 py-1.5 font-sans text-xs font-bold shadow-sm"
-                  style={`animation: float-y ${5 + i}s ease-in-out infinite;`}
-                >
-                  {s}
-                </li>
-              ))
-            }
-          </ul>
-        </div>
-
-        {/* Cartão flutuante — reforço institucional */}
-        <div
-          class="border-ink-100 shadow-ink-900/8 absolute -bottom-6 -left-8 flex items-center gap-3 rounded-2xl border bg-white px-5 py-3.5 shadow-lg"
-        >
-          <span
-            class="bg-azure-600 flex size-10 items-center justify-center rounded-full text-white"
-          >
-            <svg
-              class="size-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path
-                d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
-              ></path>
-            </svg>
-          </span>
-          <div>
-            <p class="font-display text-ink-900 text-sm font-semibold">3 especialidades</p>
-            <p class="text-ink-500 font-sans text-xs">integradas no mesmo lugar</p>
-          </div>
-        </div>
-      </div>
+      {/* Pills de especialidade */}
+      <ul
+        data-reveal="fade-in"
+        data-reveal-delay="400"
+        class="mt-8 flex flex-wrap items-center justify-center gap-2.5 lg:justify-start"
+        aria-label="Especialidades"
+      >
+        {
+          SPECIALTIES.map((s) => (
+            <li class="border-azure-500/30 text-azure-200 rounded-md border bg-white/5 px-4 py-1.5 font-sans text-sm font-medium backdrop-blur-sm">
+              {s}
+            </li>
+          ))
+        }
+      </ul>
     </div>
-
-    {/* Pills de especialidade — só em mobile (no desktop ficam no painel) */}
-    <ul
-      class="mt-10 flex flex-wrap items-center justify-center gap-2.5 lg:hidden"
-      aria-label="Especialidades"
-    >
-      {
-        SPECIALTIES.map((s) => (
-          <li class="border-azure-200 text-azure-800 rounded-full border bg-white px-4 py-1.5 font-sans text-sm font-semibold shadow-sm">
-            {s}
-          </li>
-        ))
-      }
-    </ul>
   </Container>
 
-  {/* Linha de onda separadora na base do hero */}
-  <svg
-    class="block w-full text-white"
-    viewBox="0 0 1440 48"
-    fill="none"
-    preserveAspectRatio="none"
+  {/* Indicador de scroll — "mouse" com bolinha descendo em loop */}
+  <div
+    data-scroll-cue
+    class="pointer-events-none absolute bottom-14 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 lg:flex"
     aria-hidden="true"
   >
-    <path d="M0 24C240 48 480 0 720 12s480 36 720 12v24H0Z" fill="currentColor"></path>
-  </svg>
+    <span class="flex h-8 w-5 items-start justify-center rounded-full border border-white/25 p-1">
+      <span
+        class="hero-scroll-dot bg-azure-300 size-1 rounded-full"
+        style="animation: hero-scroll-dot 1.6s ease-in-out infinite;"></span>
+    </span>
+  </div>
+
+  {
+    /* Interatividade: parallax por mouse/scroll + tilt 3D do painel de fotos.
+      Zero dependência; respeita prefers-reduced-motion. */
+  }
+  <script is:inline>
+    (function () {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      var section = document.getElementById('inicio');
+      if (!section) return;
+
+      var layers = Array.prototype.slice.call(section.querySelectorAll('[data-parallax]'));
+      var tilt = section.querySelector('[data-tilt]');
+      var mouseX = 0,
+        mouseY = 0; // -1..1 relativo ao centro da seção
+      var scrollY = 0;
+      var raf = null;
+
+      function apply() {
+        raf = null;
+        layers.forEach(function (el) {
+          var depth = parseFloat(el.getAttribute('data-parallax')) || 0;
+          var tx = mouseX * depth * 26;
+          var ty = mouseY * depth * 26 + scrollY * depth * 0.12;
+          el.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0)';
+        });
+        if (tilt) {
+          var rx = (mouseY * -5).toFixed(2);
+          var ry = (mouseX * 6).toFixed(2);
+          tilt.style.transform =
+            'perspective(1000px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg)';
+        }
+      }
+
+      function schedule() {
+        if (!raf) raf = requestAnimationFrame(apply);
+      }
+
+      section.addEventListener('mousemove', function (e) {
+        var r = section.getBoundingClientRect();
+        mouseX = ((e.clientX - r.left) / r.width - 0.5) * 2;
+        mouseY = ((e.clientY - r.top) / r.height - 0.5) * 2;
+        schedule();
+      });
+      section.addEventListener('mouseleave', function () {
+        mouseX = 0;
+        mouseY = 0;
+        schedule();
+      });
+      window.addEventListener(
+        'scroll',
+        function () {
+          scrollY = window.scrollY || 0;
+          schedule();
+        },
+        { passive: true },
+      );
+    })();
+  </script>
 </section>
