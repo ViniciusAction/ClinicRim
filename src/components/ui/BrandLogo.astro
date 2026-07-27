@@ -1,23 +1,30 @@
 ---
 import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
+import { cn } from '@/lib/utils/cn';
 import horizontal from '@/assets/logos/clinica-rim-horizontal.jpg';
 import classica from '@/assets/logos/clinica-rim-classica.png';
-import monoHorizontal from '@/assets/logos/clinica-rim-mono-horizontal.png';
-import monoStacked from '@/assets/logos/clinica-rim-mono-stacked.png';
+import monoHorizontal from '@/assets/logos/clinica-rim-mono-horizontal-trim.png';
+import monoStacked from '@/assets/logos/clinica-rim-mono-stacked-trim.png';
 
 /**
- * Ponto ÚNICO de renderização da logo. Quando as artes forem reexportadas
- * "apertadas" (ver TODO abaixo), basta trocar os imports aqui.
+ * Ponto ÚNICO de renderização da logo.
  *
- * ⚠️ TODO (arte): os arquivos atuais vieram em canvas 16:9 (frames de
- * composição), com bastante margem ao redor do símbolo. Para web, o ideal é
- * exportar versões com "trim" (sem margem) — isso fará a logo ocupar melhor o
- * espaço no header/footer. Por ora os arquivos são usados como estão.
+ * ⚠️ Sobre os arquivos de arte (importante para não repetir o bug do header):
+ *  - `horizontal` (.jpg) e `classica` (.png) têm o FUNDO AZUL EMBUTIDO na
+ *    imagem. Sobre o header/rodapé quase-preto elas aparecem como um retângulo
+ *    azulado visível — foi o que o cliente reprovou. Use-as apenas onde um
+ *    bloco retangular é aceitável (ex.: imagem de OG/compartilhamento).
+ *  - `mono-horizontal` / `mono-stacked` são as ÚNICAS realmente transparentes
+ *    (arte preta sobre alfa). São as indicadas para a interface. Sobre fundo
+ *    escuro, combine com `onDark` (inverte a arte para branco).
+ *
+ * Os arquivos mono usados aqui são as versões `-trim` (recortadas, sem a
+ * moldura 16:9 do original) — a logo passa a ocupar de fato a altura pedida.
  *
  * Variantes:
- *  - horizontal / classica .......... coloridas (fundo escuro)
- *  - mono-horizontal / mono-stacked .. pretas (fundo transparente, p/ fundo claro)
+ *  - mono-horizontal / mono-stacked .. transparentes (padrão da interface)
+ *  - horizontal / classica ........... com fundo próprio (OG / usos gráficos)
  */
 type Variant = 'horizontal' | 'classica' | 'mono-horizontal' | 'mono-stacked';
 
@@ -27,6 +34,8 @@ interface Props {
   alt?: string;
   eager?: boolean;
   width?: number;
+  /** Inverte a arte preta para branco — para uso sobre fundo escuro. */
+  onDark?: boolean;
 }
 
 const {
@@ -35,6 +44,7 @@ const {
   alt = 'Clínica Rim',
   eager = false,
   width = 220,
+  onDark = false,
 } = Astro.props;
 
 const sources: Record<Variant, ImageMetadata> = {
@@ -43,6 +53,8 @@ const sources: Record<Variant, ImageMetadata> = {
   'mono-horizontal': monoHorizontal,
   'mono-stacked': monoStacked,
 };
+
+const isMono = variant.startsWith('mono-');
 ---
 
 <Image
@@ -51,5 +63,5 @@ const sources: Record<Variant, ImageMetadata> = {
   width={width}
   densities={[1, 2]}
   loading={eager ? 'eager' : 'lazy'}
-  class={className}
+  class={cn(onDark && isMono && 'invert', className)}
 />

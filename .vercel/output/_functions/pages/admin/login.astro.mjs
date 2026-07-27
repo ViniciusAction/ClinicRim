@@ -1,6 +1,6 @@
 import { b as createAstro, c as createComponent, r as renderComponent, a as renderTemplate, m as maybeRenderHead } from '../../chunks/astro/server_BUPcWb2m.mjs';
 import 'piccolore';
-import { $ as $$AdminLayout } from '../../chunks/AdminLayout_K6mZeHzV.mjs';
+import { $ as $$AdminLayout } from '../../chunks/AdminLayout_H-lKcZEE.mjs';
 import { c as checkCredentials, S as SESSION_COOKIE, a as createSessionToken, s as sessionCookieOptions } from '../../chunks/auth_toOKJSnr.mjs';
 export { renderers } from '../../renderers.mjs';
 

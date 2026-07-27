@@ -1,6 +1,6 @@
 import { b as createAstro, c as createComponent, r as renderComponent, a as renderTemplate, m as maybeRenderHead, d as addAttribute } from '../../chunks/astro/server_BUPcWb2m.mjs';
 import 'piccolore';
-import { $ as $$AdminLayout } from '../../chunks/AdminLayout_K6mZeHzV.mjs';
+import { $ as $$AdminLayout } from '../../chunks/AdminLayout_H-lKcZEE.mjs';
 import { S as SPECIALTIES } from '../../chunks/specialties_BXcCMmga.mjs';
 import { d as doctors } from '../../chunks/doctors_Big4xRq3.mjs';
 import { v as validateNewPost, c as createPostOnDisk } from '../../chunks/posts_WD29qgCC.mjs';

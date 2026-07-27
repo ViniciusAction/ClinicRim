@@ -84,13 +84,85 @@
   color: transparent;
 }
 
-/* Atmosfera do Hero: fundo PRETO liso (como a referência Dala). Um único glow
-   radial MUITO discreto atrás do par de rins — sem faixas/linhas que cruzem a
+/* Nome da marca no Hero: mesma luz do letreiro, mas com um brilho que ATRAVESSA
+   as letras lentamente (como reflexo passando no acrílico). O gradiente tem 2x
+   a largura do texto e só a posição do fundo é animada — nada de layout. */
+.text-brand-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--color-azure-200) 0%,
+    var(--color-azure-100) 28%,
+    #ffffff 42%,
+    var(--color-azure-300) 62%,
+    var(--color-azure-200) 100%
+  );
+  background-size: 220% 100%;
+  background-position: 0% 50%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: hero-shimmer 9s ease-in-out infinite;
+}
+
+@keyframes hero-shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Grão fino sobre o fundo escuro do Hero: mata o "banding" dos degradês e dá
+   textura de impressão. SVG inline (feTurbulence) — zero requisição. */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Aurora do Hero: dois campos de luz que derivam em tempos diferentes, criando
+   uma atmosfera viva sem nenhuma ilustração. O translate do parallax fica no
+   elemento PAI — aqui só escala/desloca a luz, sem conflito de transform. */
+@keyframes hero-aurora-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(5%, -4%, 0) scale(1.14);
+  }
+}
+
+@keyframes hero-aurora-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.06);
+  }
+  50% {
+    transform: translate3d(-6%, 4%, 0) scale(0.94);
+  }
+}
+
+/* Respiração das ondulações concêntricas (assinatura da nefrologia). */
+@keyframes hero-ripple-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.05;
+  }
+  50% {
+    transform: scale(1.07);
+    opacity: 0.1;
+  }
+}
+
+/* Atmosfera do Hero: fundo PRETO liso. Um único glow radial MUITO discreto
+   atrás do bloco de conteúdo (centrado) — sem faixas/linhas que cruzem a
    tela. */
 .bg-hero-mesh {
   background-color: #030b0c;
   background-image: radial-gradient(
-    ellipse 42% 50% at 72% 48%,
+    ellipse 55% 55% at 50% 42%,
     color-mix(in oklab, var(--color-azure-600) 13%, transparent),
     transparent 72%
   );
@@ -127,34 +199,58 @@
 
 /* Animação de rotação lenta para elementos decorativos */
 @keyframes slow-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Flutuação suave (chips decorativos do hero) */
 @keyframes float-y {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 /* Respiração suave dos orbs de luz do Hero (independente do parallax por JS,
    que só mexe em translate — a opacidade "pulsa" por conta própria). */
 @keyframes hero-orb-pulse {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* Transição de troca de médico no carrossel "Nossos Especialistas". */
 @keyframes team-fade {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Marquee (faixa rolante) das fotos da clínica na seção "Por que escolher".
    A track contém a lista DUPLICADA; deslocar -50% cria loop sem emenda. */
 @keyframes marquee-x {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 .marquee-track {
   width: max-content;
@@ -174,13 +270,24 @@
 
 /* Bolinha do indicador de scroll, descendo em loop dentro do "mouse". */
 @keyframes hero-scroll-dot {
-  0% { transform: translateY(0); opacity: 1; }
-  70% { opacity: 0; }
-  100% { transform: translateY(14px); opacity: 0; }
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(14px);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-orb,
+  .hero-aurora,
+  .hero-ripple,
+  .text-brand-shimmer,
   [data-scroll-cue] .hero-scroll-dot {
     animation: none !important;
   }
@@ -225,27 +332,27 @@
 }
 
 /* --- Variantes de entrada --- */
-[data-reveal="fade-up"] {
+[data-reveal='fade-up'] {
   transform: translateY(32px);
 }
 
-[data-reveal="fade-down"] {
+[data-reveal='fade-down'] {
   transform: translateY(-32px);
 }
 
-[data-reveal="fade-left"] {
+[data-reveal='fade-left'] {
   transform: translateX(40px);
 }
 
-[data-reveal="fade-right"] {
+[data-reveal='fade-right'] {
   transform: translateX(-40px);
 }
 
-[data-reveal="zoom-in"] {
+[data-reveal='zoom-in'] {
   transform: scale(0.92);
 }
 
-[data-reveal="fade-in"] {
+[data-reveal='fade-in'] {
   /* só opacidade, sem transform */
   transform: none;
 }
@@ -265,19 +372,41 @@
   transform: none;
 }
 
-[data-reveal-stagger][data-revealed] > *:nth-child(1) { transition-delay: 0ms; }
-[data-reveal-stagger][data-revealed] > *:nth-child(2) { transition-delay: 100ms; }
-[data-reveal-stagger][data-revealed] > *:nth-child(3) { transition-delay: 200ms; }
-[data-reveal-stagger][data-revealed] > *:nth-child(4) { transition-delay: 300ms; }
-[data-reveal-stagger][data-revealed] > *:nth-child(5) { transition-delay: 400ms; }
-[data-reveal-stagger][data-revealed] > *:nth-child(6) { transition-delay: 500ms; }
+[data-reveal-stagger][data-revealed] > *:nth-child(1) {
+  transition-delay: 0ms;
+}
+[data-reveal-stagger][data-revealed] > *:nth-child(2) {
+  transition-delay: 100ms;
+}
+[data-reveal-stagger][data-revealed] > *:nth-child(3) {
+  transition-delay: 200ms;
+}
+[data-reveal-stagger][data-revealed] > *:nth-child(4) {
+  transition-delay: 300ms;
+}
+[data-reveal-stagger][data-revealed] > *:nth-child(5) {
+  transition-delay: 400ms;
+}
+[data-reveal-stagger][data-revealed] > *:nth-child(6) {
+  transition-delay: 500ms;
+}
 
 /* --- Delays opcionais via data-reveal-delay --- */
-[data-reveal-delay="100"] { transition-delay: 100ms; }
-[data-reveal-delay="200"] { transition-delay: 200ms; }
-[data-reveal-delay="300"] { transition-delay: 300ms; }
-[data-reveal-delay="400"] { transition-delay: 400ms; }
-[data-reveal-delay="500"] { transition-delay: 500ms; }
+[data-reveal-delay='100'] {
+  transition-delay: 100ms;
+}
+[data-reveal-delay='200'] {
+  transition-delay: 200ms;
+}
+[data-reveal-delay='300'] {
+  transition-delay: 300ms;
+}
+[data-reveal-delay='400'] {
+  transition-delay: 400ms;
+}
+[data-reveal-delay='500'] {
+  transition-delay: 500ms;
+}
 
 /* --- Respeita preferência de acessibilidade --- */
 @media (prefers-reduced-motion: reduce) {

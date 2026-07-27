@@ -83,7 +83,18 @@
       "WebFetch(domain:dala.craftedbygc.com)",
       "Bash(npm run *)",
       "Bash(node \"C:/Users/Action/AppData/Local/Temp/claude/d--Cursos-medico-blog-astro-teste/7f8af69a-075e-4c7c-bb7c-1677a2aa32aa/scratchpad/resize-doctors.mjs\")",
-      "Bash(node _resize-doctors.mjs)"
+      "Bash(node _resize-doctors.mjs)",
+      "PowerShell(npm run build)",
+      "Read(//c/Users/Action/AppData/Local/Temp/**)",
+      "Bash(git rm *)",
+      "Bash(npm pkg *)",
+      "Bash(echo \"exit=$?\")",
+      "PowerShell(npm run build 2>&1)",
+      "Bash(cd \"d:\\\\Cursos\\\\medico_blog_astro-teste\" && ls node_modules | grep -i -E \"^\\(puppeteer|playwright|@playwright\\)\" ; ls node_modules/.bin | grep -i -E \"playwright|puppeteer|chrome\" ; echo \"---\"; ls \"/c/Program Files/Google/Chrome/Application/chrome.exe\" 2>/dev/null && echo CHROME_OK)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "PowerShell(npm run check 2>&1)",
+      "PowerShell(npm run lint 2>&1)",
+      "Bash(git add *)"
     ]
   }
 }
