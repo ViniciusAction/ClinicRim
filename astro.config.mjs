@@ -19,22 +19,12 @@ export default defineConfig({
 
   security: {
     /**
-     * OBRIGATÓRIO atrás de proxy (Vercel) — não é ajuste fino de segurança.
+     * Necessário atrás de proxy (Vercel): sem esta lista o Astro descarta os
+     * cabeçalhos `x-forwarded-host` / `x-forwarded-proto`, cai no fallback
+     * `localhost` e passa a calcular `Astro.url` como `https://localhost` —
+     * o que estraga URLs absolutas e redirecionamentos.
      *
-     * O Astro só confia nos cabeçalhos `x-forwarded-host` / `x-forwarded-proto`
-     * se o host bater com algum padrão desta lista. Com a lista VAZIA (o
-     * default), ele descarta o host encaminhado, cai no fallback `localhost` e
-     * passa a calcular a própria origem como `https://localhost`.
-     *
-     * A consequência é silenciosa e total: a proteção CSRF embutida
-     * (`security.checkOrigin`, ligada por padrão) compara o cabeçalho `Origin`
-     * do navegador com essa origem inventada, nunca bate, e TODO envio de
-     * formulário responde 403 — login, publicar e excluir, todos quebrados em
-     * produção. Não aparece em `npm run dev`, porque essa checagem só existe no
-     * runtime SSR.
-     *
-     * `*.vercel.app` cobre tanto o alias de produção quanto as URLs geradas a
-     * cada deploy de preview.
+     * `*.vercel.app` cobre o alias de produção e as URLs de preview.
      */
     allowedDomains: [
       { protocol: 'https', hostname: '*.vercel.app' },
@@ -42,6 +32,21 @@ export default defineConfig({
       { protocol: 'https', hostname: '*.clinicarim.com.br' },
       { protocol: 'http', hostname: 'localhost' },
     ],
+
+    /**
+     * Proteção CSRF própria, em src/middleware.ts — ver `assertSameOrigin`.
+     *
+     * A checagem embutida do Astro compara o `Origin` do navegador com uma
+     * origem DERIVADA (`Astro.url.origin`), que atrás de proxy depende de
+     * cabeçalhos encaminhados e da lista acima. Quando essa derivação erra por
+     * qualquer motivo, TODO formulário do site responde 403 — login inclusive —
+     * e sem nenhuma pista no log. Foi exatamente o que aconteceu aqui.
+     *
+     * A nossa compara o `Origin` com o host que o cliente REALMENTE pediu
+     * (`x-forwarded-host`, com fallback para `host`). Não há derivação para dar
+     * errado, e toda recusa é registrada com os dois valores.
+     */
+    checkOrigin: false,
   },
 
   integrations: [

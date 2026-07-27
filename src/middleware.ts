@@ -28,7 +28,62 @@ function normalize(pathname: string): string {
   return pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
 }
 
+/** Métodos que alteram estado e, por isso, exigem verificação de origem. */
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/**
+ * Proteção CSRF — substitui o `security.checkOrigin` do Astro.
+ *
+ * Compara o `Origin` enviado pelo navegador com o host que o cliente
+ * REALMENTE pediu, lido de `x-forwarded-host` (o cabeçalho que o proxy da
+ * Vercel preenche) com fallback para `host`. Sem derivação intermediária: se
+ * o navegador postou para este host, os dois valores batem por construção.
+ *
+ * Segunda camada de defesa (independente desta): o cookie de sessão é
+ * SameSite=Lax, então o navegador nem envia a credencial num POST vindo de
+ * outro site.
+ *
+ * Devolve `null` quando está tudo certo, ou a resposta 403 a enviar.
+ */
+function assertSameOrigin(request: Request): Response | null {
+  if (!UNSAFE_METHODS.has(request.method)) return null;
+
+  const origin = request.headers.get('origin');
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = forwardedHost ?? request.headers.get('host');
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
+
+  if (!host) {
+    console.error('[csrf] requisição sem host — recusada');
+    return new Response('Origem não verificável.', { status: 403 });
+  }
+
+  // O navegador manda `Origin` em todo POST, inclusive de mesma origem.
+  // Ausência dele é sinal de cliente não-navegador, não de requisição legítima.
+  const expected = `${proto}://${host}`;
+  if (origin === expected) return null;
+
+  console.error(
+    '[csrf] origem recusada — Origin=%s esperado=%s (x-forwarded-host=%s, host=%s, proto=%s)',
+    origin ?? '(ausente)',
+    expected,
+    forwardedHost ?? '(ausente)',
+    request.headers.get('host') ?? '(ausente)',
+    proto,
+  );
+
+  return new Response('Origem da requisição não confere. Recarregue a página e tente de novo.', {
+    status: 403,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Antes de qualquer coisa e para TODA rota renderizada sob demanda — não só
+  // as de /admin — para que nenhuma rota futura nasça desprotegida.
+  const csrfFailure = assertSameOrigin(context.request);
+  if (csrfFailure) return csrfFailure;
+
   const path = normalize(context.url.pathname);
   const isAdminPage = path === '/admin' || path.startsWith('/admin/');
   const isAdminApi = path.startsWith('/api/admin/');
