@@ -143,7 +143,15 @@
       "Bash(curl -s -o /dev/null -w '  status: %{http_code}\\\\n' -X POST https://clinic-rim.vercel.app/admin/login -H 'Origin: https://clinic-rim.vercel.app' -H 'Referer: https://clinic-rim.vercel.app/admin/login' -H 'Content-Type: application/x-www-form-urlencoded' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' -H 'Accept-Language: pt-BR,pt;q=0.9' -H 'Sec-Fetch-Site: same-origin' -H 'Sec-Fetch-Mode: navigate' -H 'Sec-Fetch-Dest: document' -H 'Sec-Fetch-User: ?1' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/131.0.0.0 Safari/537.36' --data-urlencode email=dralexandre@clinicarim.com.br --data-urlencode password=qualquercoisa)",
       "Bash(curl -s -o /dev/null -w '  status: %{http_code}\\\\n' -X POST https://clinic-rim.vercel.app/admin/login/ -H 'Origin: https://clinic-rim.vercel.app' -H 'Content-Type: application/x-www-form-urlencoded' -d 'email=a@b.com&password=x')",
       "Bash(curl -s -I https://clinic-rim.vercel.app/admin/login)",
-      "PowerShell(npx eslint src/middleware.ts astro.config.mjs 2>&1)"
+      "PowerShell(npx eslint src/middleware.ts astro.config.mjs 2>&1)",
+      "Bash(curl -s -o /dev/null -w \"  /admin/login GET: %{http_code}\\\\n\" https://clinic-rim-szs5.vercel.app/admin/login)",
+      "Bash(curl -s -X POST -H \"Origin: https://clinic-rim-szs5.vercel.app\" -d \"e=1\" https://clinic-rim-szs5.vercel.app/admin/login)",
+      "PowerShell(npx eslint src/middleware.ts 2>&1)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -X POST __TRACKED_VAR__/admin/login -H 'Origin: null' -H 'Sec-Fetch-Site: same-origin' -d 'email=x@y.com&password=z')",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -X POST __TRACKED_VAR__/admin/login -H 'Origin: __TRACKED_VAR__' -d 'email=x@y.com&password=z')",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -X POST __TRACKED_VAR__/admin/login -H 'Origin: https://malicioso.com' -H 'Sec-Fetch-Site: cross-site' -d 'email=x@y.com&password=z')",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -X POST __TRACKED_VAR__/admin/login -H 'Origin: null' -d 'email=x@y.com&password=z')",
+      "Bash(curl -s -I __TRACKED_VAR__/admin/login)"
     ],
     "additionalDirectories": [
       "\\tmp"

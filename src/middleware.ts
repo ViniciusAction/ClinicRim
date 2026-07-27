@@ -48,28 +48,46 @@ const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 function assertSameOrigin(request: Request): Response | null {
   if (!UNSAFE_METHODS.has(request.method)) return null;
 
-  const origin = request.headers.get('origin');
   const forwardedHost = request.headers.get('x-forwarded-host');
   const host = forwardedHost ?? request.headers.get('host');
-  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
 
   if (!host) {
     console.error('[csrf] requisição sem host — recusada');
     return new Response('Origem não verificável.', { status: 403 });
   }
 
-  // O navegador manda `Origin` em todo POST, inclusive de mesma origem.
-  // Ausência dele é sinal de cliente não-navegador, não de requisição legítima.
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
   const expected = `${proto}://${host}`;
-  if (origin === expected) return null;
+  const origin = request.headers.get('origin');
+  const secFetchSite = request.headers.get('sec-fetch-site');
+
+  // Sinal 1: o `Origin` bate com o host pedido. É o caso normal.
+  if (origin && origin === expected) return null;
+
+  /**
+   * Sinal 2: `Sec-Fetch-Site: same-origin`.
+   *
+   * Necessário porque `Origin` NEM SEMPRE traz a origem real num envio de
+   * formulário: pela spec do Fetch, sob `Referrer-Policy: no-referrer` o
+   * navegador serializa a origem como a string "null". Uma política de
+   * privacidade mais rígida — nossa ou do usuário — apaga justamente o dado
+   * que a verificação usa. Depender só do `Origin` é frágil.
+   *
+   * `Sec-Fetch-Site` é um cabeçalho de metadados que o navegador calcula e
+   * que JavaScript de página NÃO consegue forjar. Um atacante com curl até
+   * consegue enviá-lo, mas isso não é CSRF: CSRF exige o navegador da vítima
+   * mandando os cookies dela, e é exatamente esse caminho que este sinal
+   * fecha.
+   */
+  if (secFetchSite === 'same-origin') return null;
 
   console.error(
-    '[csrf] origem recusada — Origin=%s esperado=%s (x-forwarded-host=%s, host=%s, proto=%s)',
+    '[csrf] recusado — Origin=%s esperado=%s sec-fetch-site=%s (x-forwarded-host=%s, host=%s)',
     origin ?? '(ausente)',
     expected,
+    secFetchSite ?? '(ausente)',
     forwardedHost ?? '(ausente)',
     request.headers.get('host') ?? '(ausente)',
-    proto,
   );
 
   return new Response('Origem da requisição não confere. Recarregue a página e tente de novo.', {
@@ -137,7 +155,16 @@ function withAdminHeaders(response: Response): Response {
   response.headers.set('Cache-Control', 'no-store, must-revalidate');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'no-referrer');
+  /**
+   * `same-origin`, e NÃO `no-referrer`.
+   *
+   * Com `no-referrer`, o Chrome passa a enviar `Origin: null` nos envios de
+   * formulário desta página (é o que a spec do Fetch determina) — o que
+   * derrubava a verificação de origem e devolvia 403 em todo login. O ganho de
+   * privacidade era nulo: `same-origin` já impede que qualquer referrer vaze
+   * para fora do site, que é a única coisa que importa aqui.
+   */
+  response.headers.set('Referrer-Policy', 'same-origin');
   response.headers.set(
     'Content-Security-Policy',
     [
