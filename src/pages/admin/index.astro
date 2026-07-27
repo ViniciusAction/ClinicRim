@@ -1,12 +1,18 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { listPostsOnDisk, deletePostOnDisk } from '@/lib/admin/posts';
+import { listPosts, deletePost, publishBackend, type AdminPostSummary } from '@/lib/admin/posts';
 
 /**
- * Painel — lista de publicações do blog (lidas direto do disco) com ação de
- * exclusão. Criação fica em /admin/novo.
+ * Painel — lista de publicações do blog com ação de exclusão.
+ * Criação fica em /admin/novo.
+ *
+ * A origem dos posts depende do backend ativo (ver lib/admin/posts.ts): disco
+ * no dev, repositório no ar. Em produção, excluir também é um commit — o blog
+ * só reflete a mudança depois do build.
  */
 export const prerender = false;
+
+const backend = publishBackend();
 
 let notice: { kind: 'success' | 'error'; text: string } | null = null;
 
@@ -14,38 +20,95 @@ if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   if (form.get('action') === 'delete') {
     const slug = String(form.get('slug') ?? '');
-    notice = deletePostOnDisk(slug)
-      ? { kind: 'success', text: `Artigo "${slug}" excluído.` }
-      : { kind: 'error', text: 'Não foi possível excluir este artigo.' };
+    try {
+      notice = (await deletePost(slug))
+        ? {
+            kind: 'success',
+            text:
+              backend === 'github'
+                ? `Artigo "${slug}" removido. O blog atualiza em 1-2 min, quando o build terminar.`
+                : `Artigo "${slug}" excluído.`,
+          }
+        : { kind: 'error', text: 'Não foi possível excluir este artigo.' };
+    } catch (error) {
+      notice = { kind: 'error', text: `Falha ao excluir: ${(error as Error).message}` };
+    }
   }
 }
 
 const created = Astro.url.searchParams.get('ok');
 if (created) {
-  notice = { kind: 'success', text: `Artigo publicado! Veja em /blog/${created}/` };
+  notice = {
+    kind: 'success',
+    text:
+      backend === 'github'
+        ? `Artigo publicado! Estará em /blog/${created}/ em 1-2 min, quando o build terminar.`
+        : `Artigo publicado! Veja em /blog/${created}/`,
+  };
 }
 
-const posts = listPostsOnDisk();
+let posts: AdminPostSummary[] = [];
+let loadError: string | null = null;
+try {
+  posts = await listPosts();
+} catch (error) {
+  loadError = `Não foi possível ler os artigos: ${(error as Error).message}`;
+}
 ---
 
 <AdminLayout title="Publicações">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="font-display text-2xl font-medium text-ink-900">Publicações</h1>
-      <p class="mt-1 font-sans text-sm text-ink-500">
+      <h1 class="font-display text-ink-900 text-2xl font-medium">Publicações</h1>
+      <p class="text-ink-500 mt-1 font-sans text-sm">
         {posts.length} artigo{posts.length === 1 ? '' : 's'} no blog da clínica.
       </p>
     </div>
     <a
       href="/admin/novo"
-      class="inline-flex h-11 items-center gap-2 rounded-md bg-azure-600 px-6 font-sans text-sm font-medium text-white transition-all hover:bg-azure-500"
+      class="bg-azure-600 hover:bg-azure-500 inline-flex h-11 items-center gap-2 rounded-md px-6 font-sans text-sm font-medium text-white transition-all"
     >
-      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-        <path d="M12 5v14M5 12h14" />
+      <svg
+        class="size-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14"></path>
       </svg>
       Novo artigo
     </a>
   </div>
+
+  {
+    backend === 'unavailable' && (
+      <div
+        role="alert"
+        class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-sans text-sm text-red-700"
+      >
+        <p class="font-medium">Publicação indisponível</p>
+        <p class="mt-1 leading-relaxed">
+          Defina <code>GITHUB_TOKEN</code> e <code>GITHUB_REPO</code> nas variáveis de ambiente do
+          projeto na Vercel. Sem elas não é possível publicar: o disco da função é somente leitura,
+          então o artigo precisa ser gravado por commit no repositório.
+        </p>
+      </div>
+    )
+  }
+
+  {
+    loadError && (
+      <p
+        role="alert"
+        class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-700"
+      >
+        {loadError}
+      </p>
+    )
+  }
 
   {
     notice && (
@@ -63,27 +126,28 @@ const posts = listPostsOnDisk();
     )
   }
 
-  <div class="mt-8 overflow-hidden rounded-2xl border border-ink-100 bg-white">
+  <div class="border-ink-100 mt-8 overflow-hidden rounded-2xl border bg-white">
     {
       posts.length === 0 ? (
-        <p class="p-10 text-center font-sans text-sm text-ink-500">
+        <p class="text-ink-500 p-10 text-center font-sans text-sm">
           Nenhum artigo ainda. Clique em <strong>Novo artigo</strong> para publicar o primeiro.
         </p>
       ) : (
-        <ul class="divide-y divide-ink-100">
+        <ul class="divide-ink-100 divide-y">
           {posts.map((post) => (
             <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
               <div class="min-w-0 flex-1">
-                <p class="truncate font-sans text-sm font-medium text-ink-900">
+                <p class="text-ink-900 truncate font-sans text-sm font-medium">
                   {post.title}
                   {post.draft && (
-                    <span class="ml-2 rounded-md bg-gold-100 px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] text-gold-700 uppercase">
+                    <span class="bg-gold-100 text-gold-700 ml-2 rounded-md px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] uppercase">
                       rascunho
                     </span>
                   )}
                 </p>
-                <p class="mt-0.5 font-sans text-xs text-ink-400">
-                  {post.specialty} · {post.pubDate} · <code class="text-ink-500">{post.fileName}</code>
+                <p class="text-ink-400 mt-0.5 font-sans text-xs">
+                  {post.specialty} · {post.pubDate} ·{' '}
+                  <code class="text-ink-500">{post.fileName}</code>
                 </p>
               </div>
 
@@ -91,7 +155,7 @@ const posts = listPostsOnDisk();
                 href={`/blog/${post.slug}/`}
                 target="_blank"
                 rel="noopener"
-                class="rounded-md border border-ink-200 px-3.5 py-1.5 font-sans text-xs font-medium text-ink-700 transition-colors hover:border-azure-300 hover:bg-azure-50"
+                class="border-ink-200 text-ink-700 hover:border-azure-300 hover:bg-azure-50 rounded-md border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors"
               >
                 Ver ↗
               </a>
@@ -116,9 +180,20 @@ const posts = listPostsOnDisk();
     }
   </div>
 
-  <p class="mt-6 font-sans text-xs leading-relaxed text-ink-400">
-    ℹ️ Em desenvolvimento (<code>npm run dev</code>) o artigo aparece no blog imediatamente. Em
-    produção, o blog é estático — rode <code>npm run build</code> após publicar para regenerar as
-    páginas.
+  <p class="text-ink-400 mt-6 font-sans text-xs leading-relaxed">
+    {
+      backend === 'github' ? (
+        <>
+          ℹ️ Publicar e excluir criam um <strong>commit no repositório</strong>, que dispara o build
+          automático. O blog é estático, então a mudança aparece no site em cerca de 1 a 2 minutos —
+          e todo artigo fica versionado, com histórico e possibilidade de reverter.
+        </>
+      ) : (
+        <>
+          ℹ️ Em desenvolvimento (<code>npm run dev</code>) o artigo é gravado em disco e aparece no
+          blog imediatamente. No ar, a gravação passa a ser por commit no repositório.
+        </>
+      )
+    }
   </p>
 </AdminLayout>

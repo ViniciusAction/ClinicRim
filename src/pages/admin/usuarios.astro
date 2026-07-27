@@ -1,0 +1,225 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { listUsers, resetPasswordFor, setUserActive, type AdminUserSummary } from '@/lib/auth';
+import { getDoctorById } from '@/data/doctors';
+import { clientIp } from '@/lib/utils/request';
+
+/**
+ * Equipe — as três contas do painel.
+ *
+ * NÃO existe criação de usuário aqui, de propósito: o corpo clínico é fixo e
+ * definido em src/data/doctors.ts, e cada conta é criada uma única vez pelo
+ * script `npm run seed:admins`. Uma tela de "convidar usuário" seria uma porta
+ * a mais para manter fechada, sem nenhum uso real.
+ *
+ * O que existe é o que a operação de uma clínica precisa de verdade:
+ *  · redefinir a senha de um colega que esqueceu a dele (sem depender de e-mail);
+ *  · cortar o acesso na hora, se um notebook for perdido.
+ */
+export const prerender = false;
+
+const currentUser = Astro.locals.user!;
+const ip = clientIp(Astro.request);
+
+let error: string | null = null;
+let notice: string | null = null;
+/** Mostrada UMA vez, logo após redefinir. Não fica gravada em lugar nenhum. */
+let temporaryPassword: { name: string; password: string } | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('action') ?? '');
+  const userId = String(form.get('userId') ?? '');
+
+  if (action === 'reset-password') {
+    const result = await resetPasswordFor(currentUser.id, userId, { ip });
+    if (result.ok) {
+      const target = (await listUsers()).find((u) => u.id === userId);
+      temporaryPassword = {
+        name: target?.name ?? 'o usuário',
+        password: result.temporaryPassword,
+      };
+    } else {
+      error = result.message;
+    }
+  }
+
+  if (action === 'set-active') {
+    const active = form.get('active') === 'true';
+    const result = await setUserActive(currentUser.id, userId, active, { ip });
+    if (result.ok) {
+      notice = active ? 'Acesso reativado.' : 'Acesso suspenso e sessões encerradas.';
+    } else {
+      error = result.message;
+    }
+  }
+}
+
+let users: AdminUserSummary[] = [];
+let loadError: string | null = null;
+try {
+  users = await listUsers();
+} catch (loadFailure) {
+  loadError = (loadFailure as Error).message;
+}
+
+const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+---
+
+<AdminLayout title="Equipe">
+  <div class="mx-auto max-w-3xl">
+    <h1 class="font-display text-ink-900 text-2xl font-medium">Equipe</h1>
+    <p class="text-ink-500 mt-1 font-sans text-sm leading-relaxed">
+      Os três médicos têm exatamente o mesmo poder no painel: publicar, editar, excluir e
+      administrar estas contas.
+    </p>
+
+    {
+      temporaryPassword && (
+        <div
+          role="status"
+          class="border-azure-300 bg-azure-50 mt-6 rounded-2xl border px-5 py-4 font-sans text-sm"
+        >
+          <p class="text-azure-900 font-medium">Senha temporária de {temporaryPassword.name}</p>
+          <p class="text-azure-800 mt-2 leading-relaxed">
+            Passe esta senha pessoalmente ou por telefone —
+            <strong>ela não será exibida de novo</strong>. No primeiro acesso, o painel vai exigir
+            que ele(a) escolha uma senha própria.
+          </p>
+          <p class="border-azure-200 text-ink-900 mt-3 rounded-md border bg-white px-4 py-3 text-center font-mono text-lg tracking-wider select-all">
+            {temporaryPassword.password}
+          </p>
+        </div>
+      )
+    }
+
+    {
+      notice && (
+        <p
+          role="status"
+          class="border-azure-200 bg-azure-50 text-azure-800 mt-6 rounded-2xl border px-4 py-3 font-sans text-sm"
+        >
+          {notice}
+        </p>
+      )
+    }
+
+    {
+      (error || loadError) && (
+        <p
+          role="alert"
+          class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-700"
+        >
+          {error ?? loadError}
+        </p>
+      )
+    }
+
+    <div class="border-ink-100 mt-8 overflow-hidden rounded-2xl border bg-white">
+      {
+        users.length === 0 && !loadError ? (
+          <p class="text-ink-500 p-10 text-center font-sans text-sm leading-relaxed">
+            Nenhuma conta cadastrada ainda. Rode <code>npm run seed:admins</code> para criar os
+            acessos dos três médicos.
+          </p>
+        ) : (
+          <ul class="divide-ink-100 divide-y">
+            {users.map((account) => {
+              const doctor = getDoctorById(account.doctorId);
+              const isSelf = account.id === currentUser.id;
+
+              return (
+                <li class="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-5">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-ink-900 font-sans text-sm font-medium">
+                      {account.name}
+                      {isSelf && (
+                        <span class="bg-azure-50 text-azure-700 ml-2 rounded-md px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] uppercase">
+                          você
+                        </span>
+                      )}
+                      {!account.active && (
+                        <span class="ml-2 rounded-md bg-red-50 px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] text-red-700 uppercase">
+                          suspenso
+                        </span>
+                      )}
+                      {account.mustChangePassword && account.active && (
+                        <span class="bg-gold-100 text-gold-700 ml-2 rounded-md px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] uppercase">
+                          senha temporária
+                        </span>
+                      )}
+                    </p>
+                    <p class="text-ink-400 mt-0.5 font-sans text-xs">
+                      {account.email}
+                      {doctor && ` · ${doctor.role}`}
+                    </p>
+                    <p class="text-ink-400 mt-0.5 font-sans text-xs">
+                      {account.lastLoginAt
+                        ? `Último acesso em ${dateTime.format(new Date(account.lastLoginAt))}`
+                        : 'Nunca acessou'}
+                    </p>
+                  </div>
+
+                  {isSelf ? (
+                    <a
+                      href="/admin/conta"
+                      class="border-ink-200 text-ink-700 hover:border-azure-300 hover:bg-azure-50 rounded-md border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors"
+                    >
+                      Minha conta
+                    </a>
+                  ) : (
+                    <div class="flex flex-wrap items-center gap-2">
+                      <form
+                        method="post"
+                        onsubmit={`return confirm('Redefinir a senha de ${account.name.replaceAll("'", '’')}? A senha atual deixa de funcionar imediatamente.');`}
+                      >
+                        <input type="hidden" name="action" value="reset-password" />
+                        <input type="hidden" name="userId" value={account.id} />
+                        <button
+                          type="submit"
+                          class="border-ink-200 text-ink-700 hover:border-azure-300 hover:bg-azure-50 rounded-md border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors"
+                        >
+                          Redefinir senha
+                        </button>
+                      </form>
+
+                      <form
+                        method="post"
+                        onsubmit={
+                          account.active
+                            ? `return confirm('Suspender o acesso de ${account.name.replaceAll("'", '’')}? Ele(a) será desconectado(a) na hora.');`
+                            : undefined
+                        }
+                      >
+                        <input type="hidden" name="action" value="set-active" />
+                        <input type="hidden" name="userId" value={account.id} />
+                        <input type="hidden" name="active" value={String(!account.active)} />
+                        <button
+                          type="submit"
+                          class:list={[
+                            'rounded-md border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors',
+                            account.active
+                              ? 'border-red-200 text-red-600 hover:bg-red-50'
+                              : 'border-ink-200 text-ink-700 hover:border-azure-300 hover:bg-azure-50',
+                          ]}
+                        >
+                          {account.active ? 'Suspender acesso' : 'Reativar acesso'}
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )
+      }
+    </div>
+
+    <p class="text-ink-400 mt-6 font-sans text-xs leading-relaxed">
+      ℹ️ Não há recuperação de senha por e-mail — e isso é intencional. Como os três são
+      administradores, quem esquecer a senha pede a um colega para redefinir aqui. Menos peças,
+      menos coisas para dar errado.
+    </p>
+  </div>
+</AdminLayout>

@@ -10,7 +10,8 @@
     "astro": "astro",
     "check": "astro check",
     "lint": "eslint . --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,astro,css,md,mdx}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,astro,css,md,mdx}\"",
+    "seed:admins": "node --env-file-if-exists=.env scripts/seed-admins.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.2.0",
@@ -21,6 +22,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.15",
+    "@supabase/supabase-js": "^2.110.9",
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.0.0",
     "astro": "^5.7.0",

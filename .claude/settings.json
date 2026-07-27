@@ -94,7 +94,31 @@
       "Read(//c/Program Files/Google/Chrome/Application/**)",
       "PowerShell(npm run check 2>&1)",
       "PowerShell(npm run lint 2>&1)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Read(//d/Cursos/skills/~/antigravity-skills/**)",
+      "Read(//d/Cursos/skills/**)",
+      "Bash(ls \"/d/Cursos/skills/~/antigravity-skills/skills\" | head -80)",
+      "Read(//d/Cursos/skills/~/antigravity-skills/skills/**)",
+      "Read(//d/Cursos/skills/~/antigravity-skills/skills/supabase-postgres-best-practices/**)",
+      "Bash(ls \"/d/Cursos/skills/~/antigravity-skills/skills/supabase-postgres-best-practices/references\" | tr '\\\\n' ' ')",
+      "Read(//d/Cursos/skills/~/antigravity-skills/skills/supabase-postgres-best-practices/references/**)",
+      "PowerShell(npm install @supabase/supabase-js 2>&1)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/@supabase/supabase-js/package.json'\\).version\\)\")",
+      "PowerShell(npx eslint src/lib src/middleware.ts src/env.d.ts scripts src/pages/admin src/pages/api --max-warnings 0 2>&1)",
+      "PowerShell(if \\($?\\) { \"LINT OK nos arquivos novos\" })",
+      "Bash(git check-ignore *)",
+      "PowerShell(npm run seed:admins -- dr-alexandre=dralexandre@clinicarim.com.br dra-bruna=drabruna@clinicarim.com.br dr-igor=drigor@clinicarim.com.br 2>&1)",
+      "PowerShell(npm run dev 2>&1)",
+      "Bash(rm -f *.txt)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code} -> %{redirect_url}\\\\n' __TRACKED_VAR__/admin)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -X POST __TRACKED_VAR__/api/admin/logout)",
+      "Bash(curl -s -w '\\\\n  http %{http_code}\\\\n' __TRACKED_VAR__/api/health)",
+      "Bash(curl -s -X POST -d 'email=drigor@clinicarim.com.br&password=senhaerrada123' __TRACKED_VAR__/admin/login)",
+      "Bash(node --env-file-if-exists=.env --input-type=module -e ' *)",
+      "Bash(npx vercel *)",
+      "Bash(gh auth *)"
     ]
   }
 }

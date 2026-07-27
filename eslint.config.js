@@ -11,7 +11,21 @@ import reactHooks from 'eslint-plugin-react-hooks';
  * - jsx-a11y + react-hooks nas ilhas React (.tsx)
  */
 export default [
-  { ignores: ['dist/', '.astro/', 'node_modules/', '*.config.*'] },
+  {
+    ignores: [
+      'dist/',
+      '.astro/',
+      '.output/',
+      // Artefato do `vercel build`: código gerado/minificado. Sem isto, o lint
+      // reporta mais de mil erros que não são nossos e o gate perde a serventia.
+      '.vercel/',
+      // Skills de terceiros, vendorizadas — não são código deste projeto.
+      // (o tsconfig já as exclui da checagem de tipos)
+      'skills/',
+      'node_modules/',
+      '*.config.*',
+    ],
+  },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,

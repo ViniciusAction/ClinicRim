@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /api/
-
-# Atualize o domínio em astro.config.mjs (site) — o sitemap é gerado no build.
-Sitemap: https://www.clinicarim.com.br/sitemap-index.xml

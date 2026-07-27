@@ -1,6 +1,9 @@
 # build output
 dist/
 .output/
+# Artefato do `vercel build` — é regerado a cada deploy e não deve ser versionado.
+# Além de poluir o histórico, um build feito com um .env real gravaria segredos aqui.
+.vercel/
 
 # generated types
 .astro/

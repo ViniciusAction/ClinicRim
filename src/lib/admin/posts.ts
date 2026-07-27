@@ -2,21 +2,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { SPECIALTIES, type Specialty } from '@/data/specialties';
 import { doctors } from '@/data/doctors';
+import { commitFiles, getGitHubConfig, listMarkdown, type FileChange } from '@/lib/admin/github';
 
 /**
- * CRUD de posts direto no filesystem (src/content/blog/*.md) — usado SOMENTE
- * pela área restrita (/admin), que roda server-side (prerender = false).
+ * CRUD dos posts do blog, com DOIS backends:
  *
- * Por que fs e não getCollection()? A Content Layer reflete o estado do
- * build/dev server; ler o diretório garante que o painel sempre mostre o que
- * está de fato no disco (inclusive um post recém-criado ou excluído).
+ *  - `fs`     — grava direto em src/content/blog. Usado no `npm run dev`:
+ *               o post aparece no blog na hora (hot reload), sem token e sem
+ *               poluir o histórico do git com commits de teste.
+ *  - `github` — faz commit no repositório via API. Obrigatório em produção,
+ *               porque o filesystem da função serverless na Vercel é somente
+ *               leitura. O push dispara o build e as páginas do blog são
+ *               regeneradas (~1-2 min).
  *
- * Fluxo de publicação: em `npm run dev` o novo .md aparece no blog na hora
- * (hot reload). Em produção, as páginas do blog são estáticas — rode
- * `npm run build` após publicar para regenerá-las.
+ * A escolha é automática: se GITHUB_TOKEN e GITHUB_REPO estiverem definidos,
+ * usa GitHub; senão, disco. Em produção sem essas variáveis, `publishBackend`
+ * devolve 'unavailable' e o painel avisa em vez de estourar EROFS na cara do
+ * usuário.
  */
-const BLOG_DIR = path.resolve('src/content/blog');
-const UPLOADS_DIR = path.resolve('src/assets/blog/uploads');
+const BLOG_DIR = 'src/content/blog';
+const UPLOADS_DIR = 'src/assets/blog/uploads';
 
 /** Capa padrão por especialidade (usada quando o autor não envia imagem). */
 const DEFAULT_COVERS: Record<Specialty, string> = {
@@ -30,6 +35,8 @@ const ALLOWED_COVER_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
 };
+
+export type PublishBackend = 'fs' | 'github' | 'unavailable';
 
 export interface AdminPostSummary {
   slug: string;
@@ -52,6 +59,13 @@ export interface NewPostInput {
   coverAlt?: string;
 }
 
+/** Qual backend está ativo nesta execução. */
+export function publishBackend(): PublishBackend {
+  if (getGitHubConfig()) return 'github';
+  // Em produção o filesystem é somente leitura — disco não é opção.
+  return import.meta.env.PROD ? 'unavailable' : 'fs';
+}
+
 /** Slug URL-safe a partir do título (remove acentos, minúsculas, hífens). */
 export function slugify(input: string): string {
   return input
@@ -68,25 +82,42 @@ function frontmatterValue(raw: string, key: string): string | undefined {
   return match?.[1]?.trim().replace(/^['"]|['"]$/g, '');
 }
 
-/** Lista os posts existentes no disco (mais recentes primeiro). */
-export function listPostsOnDisk(): AdminPostSummary[] {
-  if (!fs.existsSync(BLOG_DIR)) return [];
+function toSummary(fileName: string, raw: string): AdminPostSummary {
+  return {
+    slug: fileName.replace(/\.(md|mdx)$/, ''),
+    fileName,
+    title: frontmatterValue(raw, 'title') ?? fileName,
+    pubDate: frontmatterValue(raw, 'pubDate') ?? '',
+    specialty: frontmatterValue(raw, 'specialty') ?? '',
+    draft: frontmatterValue(raw, 'draft') === 'true',
+  };
+}
 
-  return fs
-    .readdirSync(BLOG_DIR)
-    .filter((file) => /\.(md|mdx)$/.test(file))
-    .map((fileName) => {
-      const raw = fs.readFileSync(path.join(BLOG_DIR, fileName), 'utf8');
-      return {
-        slug: fileName.replace(/\.(md|mdx)$/, ''),
-        fileName,
-        title: frontmatterValue(raw, 'title') ?? fileName,
-        pubDate: frontmatterValue(raw, 'pubDate') ?? '',
-        specialty: frontmatterValue(raw, 'specialty') ?? '',
-        draft: frontmatterValue(raw, 'draft') === 'true',
-      };
-    })
-    .sort((a, b) => b.pubDate.localeCompare(a.pubDate));
+const byDateDesc = (a: AdminPostSummary, b: AdminPostSummary) => b.pubDate.localeCompare(a.pubDate);
+
+/** Monta o markdown completo (frontmatter + corpo). */
+function buildMarkdown(
+  input: NewPostInput,
+  cover: string,
+  coverAlt: string,
+  pubDate: string,
+): string {
+  // JSON.stringify gera strings YAML válidas (escapa aspas, dois-pontos etc.).
+  const frontmatter = [
+    '---',
+    `title: ${JSON.stringify(input.title.trim())}`,
+    `description: ${JSON.stringify(input.description.trim())}`,
+    `pubDate: ${pubDate}`,
+    `cover: ${JSON.stringify(cover)}`,
+    `coverAlt: ${JSON.stringify(coverAlt)}`,
+    `tags: [${input.tags.map((t) => JSON.stringify(t)).join(', ')}]`,
+    `author: ${JSON.stringify(input.author)}`,
+    `specialty: ${JSON.stringify(input.specialty)}`,
+    `draft: ${input.draft}`,
+    '---',
+  ].join('\n');
+
+  return `${frontmatter}\n\n${input.body.trim()}\n`;
 }
 
 /** Valida os campos do formulário; retorna a lista de erros (vazia = ok). */
@@ -106,63 +137,139 @@ export function validateNewPost(input: NewPostInput): string[] {
   return errors;
 }
 
-/**
- * Cria o arquivo markdown do post (e salva a capa enviada, se houver).
- * Retorna o slug final usado.
- */
-export async function createPostOnDisk(input: NewPostInput): Promise<string> {
-  fs.mkdirSync(BLOG_DIR, { recursive: true });
+/* ── Leitura ───────────────────────────────────────────────────────────── */
 
-  // Slug único: se já existir, sufixa -2, -3…
-  const base = slugify(input.title) || 'post';
-  let slug = base;
-  for (let i = 2; fs.existsSync(path.join(BLOG_DIR, `${slug}.md`)); i++) {
-    slug = `${base}-${i}`;
+/** Lista os posts (mais recentes primeiro), do backend ativo. */
+export async function listPosts(): Promise<AdminPostSummary[]> {
+  const cfg = getGitHubConfig();
+
+  if (cfg) {
+    const files = await listMarkdown(cfg, BLOG_DIR);
+    return files.map((f) => toSummary(f.name, f.raw)).sort(byDateDesc);
   }
 
-  // Capa: upload do autor ou padrão da especialidade.
-  let cover = DEFAULT_COVERS[input.specialty];
-  let coverAlt =
-    input.coverAlt?.trim() ||
-    `Ilustração da especialidade ${input.specialty} — Clínica RIM`;
+  const dir = path.resolve(BLOG_DIR);
+  if (!fs.existsSync(dir)) return [];
 
-  if (input.cover && input.cover.size > 0) {
-    const ext = ALLOWED_COVER_EXT[input.cover.type];
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-    const coverFile = `${slug}.${ext}`;
-    fs.writeFileSync(
-      path.join(UPLOADS_DIR, coverFile),
-      Buffer.from(await input.cover.arrayBuffer()),
+  return fs
+    .readdirSync(dir)
+    .filter((file) => /\.(md|mdx)$/.test(file))
+    .map((fileName) => toSummary(fileName, fs.readFileSync(path.join(dir, fileName), 'utf8')))
+    .sort(byDateDesc);
+}
+
+/* ── Criação ───────────────────────────────────────────────────────────── */
+
+/**
+ * Publica o post no backend ativo (e salva a capa enviada, se houver).
+ * Retorna o slug final usado.
+ */
+export async function createPost(input: NewPostInput): Promise<string> {
+  const cfg = getGitHubConfig();
+  const base = slugify(input.title) || 'post';
+  const pubDate = new Date().toISOString().slice(0, 10);
+
+  const hasCover = Boolean(input.cover && input.cover.size > 0);
+  const coverExt = hasCover ? ALLOWED_COVER_EXT[input.cover!.type] : null;
+  const coverBytes = hasCover ? new Uint8Array(await input.cover!.arrayBuffer()) : null;
+
+  const coverAlt =
+    input.coverAlt?.trim() || `Ilustração da especialidade ${input.specialty} — Clínica RIM`;
+
+  if (cfg) {
+    // Slug único: consulta os nomes já existentes no repositório.
+    const taken = new Set((await listMarkdown(cfg, BLOG_DIR)).map((f) => f.name));
+    let slug = base;
+    for (let i = 2; taken.has(`${slug}.md`) || taken.has(`${slug}.mdx`); i++) slug = `${base}-${i}`;
+
+    const changes: FileChange[] = [];
+    let cover = DEFAULT_COVERS[input.specialty];
+
+    if (coverBytes && coverExt) {
+      const coverFile = `${slug}.${coverExt}`;
+      changes.push({ path: `${UPLOADS_DIR}/${coverFile}`, content: coverBytes });
+      cover = `../../assets/blog/uploads/${coverFile}`;
+    }
+
+    changes.push({
+      path: `${BLOG_DIR}/${slug}.md`,
+      content: buildMarkdown(input, cover, coverAlt, pubDate),
+    });
+
+    await commitFiles(
+      cfg,
+      `content: publica "${input.title.trim()}"${input.draft ? ' (rascunho)' : ''}\n\nPublicado pelo painel /admin da Clínica Rim.`,
+      changes,
     );
+
+    return slug;
+  }
+
+  if (import.meta.env.PROD) {
+    throw new Error(
+      'Publicação indisponível: defina GITHUB_TOKEN e GITHUB_REPO. ' +
+        'Em produção o filesystem é somente leitura, então o post precisa ir por commit.',
+    );
+  }
+
+  // Backend de disco (desenvolvimento).
+  const dir = path.resolve(BLOG_DIR);
+  fs.mkdirSync(dir, { recursive: true });
+
+  let slug = base;
+  for (let i = 2; fs.existsSync(path.join(dir, `${slug}.md`)); i++) slug = `${base}-${i}`;
+
+  let cover = DEFAULT_COVERS[input.specialty];
+  if (coverBytes && coverExt) {
+    const uploads = path.resolve(UPLOADS_DIR);
+    fs.mkdirSync(uploads, { recursive: true });
+    const coverFile = `${slug}.${coverExt}`;
+    fs.writeFileSync(path.join(uploads, coverFile), coverBytes);
     cover = `../../assets/blog/uploads/${coverFile}`;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  // JSON.stringify gera strings YAML válidas (escapa aspas, dois-pontos etc.).
-  const frontmatter = [
-    '---',
-    `title: ${JSON.stringify(input.title.trim())}`,
-    `description: ${JSON.stringify(input.description.trim())}`,
-    `pubDate: ${today}`,
-    `cover: ${JSON.stringify(cover)}`,
-    `coverAlt: ${JSON.stringify(coverAlt)}`,
-    `tags: [${input.tags.map((t) => JSON.stringify(t)).join(', ')}]`,
-    `author: ${JSON.stringify(input.author)}`,
-    `specialty: ${JSON.stringify(input.specialty)}`,
-    `draft: ${input.draft}`,
-    '---',
-  ].join('\n');
-
-  fs.writeFileSync(path.join(BLOG_DIR, `${slug}.md`), `${frontmatter}\n\n${input.body.trim()}\n`);
+  fs.writeFileSync(path.join(dir, `${slug}.md`), buildMarkdown(input, cover, coverAlt, pubDate));
   return slug;
 }
 
-/** Exclui um post pelo slug (valida o nome para nunca sair do diretório). */
-export function deletePostOnDisk(slug: string): boolean {
+/* ── Exclusão ──────────────────────────────────────────────────────────── */
+
+/**
+ * Exclui um post pelo slug — e a capa dele, se for um upload.
+ * Valida o nome para nunca sair do diretório.
+ */
+export async function deletePost(slug: string): Promise<boolean> {
   if (!/^[a-z0-9-]+$/.test(slug)) return false;
 
+  const cfg = getGitHubConfig();
+
+  if (cfg) {
+    const files = await listMarkdown(cfg, BLOG_DIR);
+    const target = files.find((f) => f.name === `${slug}.md` || f.name === `${slug}.mdx`);
+    if (!target) return false;
+
+    const changes: FileChange[] = [{ path: target.path, content: null }];
+
+    // Se a capa era um upload deste post, remove no mesmo commit.
+    const cover = frontmatterValue(target.raw, 'cover');
+    if (cover?.includes('/assets/blog/uploads/')) {
+      const coverFile = cover.split('/').pop();
+      if (coverFile) changes.push({ path: `${UPLOADS_DIR}/${coverFile}`, content: null });
+    }
+
+    const title = frontmatterValue(target.raw, 'title') ?? slug;
+    await commitFiles(
+      cfg,
+      `content: remove "${title}"\n\nExcluído pelo painel /admin da Clínica Rim.`,
+      changes,
+    );
+    return true;
+  }
+
+  if (import.meta.env.PROD) return false;
+
   for (const ext of ['md', 'mdx']) {
-    const file = path.join(BLOG_DIR, `${slug}.${ext}`);
+    const file = path.resolve(BLOG_DIR, `${slug}.${ext}`);
     if (fs.existsSync(file)) {
       fs.unlinkSync(file);
       return true;

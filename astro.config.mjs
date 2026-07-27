@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
-import vercel from '@astrojs/vercel/serverless';
+import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 
 // O site público continua estático (SSG) — todas as páginas são prerenderizadas.
