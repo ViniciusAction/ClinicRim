@@ -62,24 +62,43 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verifica a senha em tempo constante.
  * Nunca lança: hash corrompido ou em formato desconhecido devolve `false`.
+ *
+ * Toda recusa por motivo TÉCNICO (formato inválido, falha do scrypt) é
+ * registrada no console. Sem isso, uma falha de infraestrutura vira
+ * "senha incorreta" na tela e fica indistinguível de erro de digitação —
+ * exatamente o tipo de bug que só se descobre com o usuário travado do lado de
+ * fora. Nunca logamos a senha nem o hash.
  */
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   try {
     const [scheme, n, r, p, saltB64, hashB64] = stored.split('$');
-    if (scheme !== 'scrypt') return false;
-
-    const params: ScryptParams = { N: Number(n), r: Number(r), p: Number(p) };
-    if (!Number.isInteger(params.N) || !Number.isInteger(params.r) || !Number.isInteger(params.p)) {
+    if (scheme !== 'scrypt' || !saltB64 || !hashB64) {
+      console.error('[password] hash em formato desconhecido (scheme=%s)', scheme);
       return false;
     }
 
-    const expected = Buffer.from(hashB64!, 'base64url');
-    const actual = await derive(password, Buffer.from(saltB64!, 'base64url'), params);
+    const params: ScryptParams = { N: Number(n), r: Number(r), p: Number(p) };
+    if (!Number.isInteger(params.N) || !Number.isInteger(params.r) || !Number.isInteger(params.p)) {
+      console.error('[password] parâmetros de scrypt inválidos: N=%s r=%s p=%s', n, r, p);
+      return false;
+    }
 
-    // timingSafeEqual exige mesmo comprimento — comparar antes evita a exceção.
-    if (expected.length !== actual.length) return false;
+    const expected = Buffer.from(hashB64, 'base64url');
+    const actual = await derive(password, Buffer.from(saltB64, 'base64url'), params);
+
+    if (expected.length !== actual.length) {
+      console.error(
+        '[password] tamanho de hash inesperado: esperado %d, derivado %d',
+        expected.length,
+        actual.length,
+      );
+      return false;
+    }
+
+    // timingSafeEqual exige mesmo comprimento — a checagem acima garante isso.
     return timingSafeEqual(expected, actual);
-  } catch {
+  } catch (error) {
+    console.error('[password] scrypt falhou:', (error as Error).message);
     return false;
   }
 }

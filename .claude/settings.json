@@ -118,7 +118,31 @@
       "Bash(curl -s -X POST -d 'email=drigor@clinicarim.com.br&password=senhaerrada123' __TRACKED_VAR__/admin/login)",
       "Bash(node --env-file-if-exists=.env --input-type=module -e ' *)",
       "Bash(npx vercel *)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Bash(curl -s -w \"\\\\n  http %{http_code}\\\\n\" https://clinic-rim.vercel.app/api/health)",
+      "Bash(curl -s -o /dev/null -w \"  %{http_code} -> %{redirect_url}\\\\n\" https://clinic-rim.vercel.app/admin)",
+      "Bash(curl -s https://clinic-rim.vercel.app/admin/login)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code} -> %{redirect_url}\\\\n' -X POST -d 'email=dralexandre@clinicarim.com.br&password=7VSN-B9WK-Y6NT-KCNR' https://clinic-rim.vercel.app/admin/login)",
+      "Bash(curl -s -X POST -d 'email=dralexandre@clinicarim.com.br&password=errada123456' https://clinic-rim.vercel.app/admin/login)",
+      "Bash(curl -s -c /tmp/p.txt -o /dev/null -w '  %{http_code} -> %{redirect_url}\\\\n' -H 'Origin: https://clinic-rim.vercel.app' -H 'Content-Type: application/x-www-form-urlencoded' -X POST -d 'email=dralexandre@clinicarim.com.br&password=7VSN-B9WK-Y6NT-KCNR' https://clinic-rim.vercel.app/admin/login)",
+      "Bash(curl -s -H 'Origin: https://clinic-rim.vercel.app' -X POST -d 'email=dralexandre@clinicarim.com.br&password=errada123456' https://clinic-rim.vercel.app/admin/login)",
+      "Bash(curl -s -i -X POST -H 'Origin: https://clinic-rim.vercel.app' -d 'email=a@b.com&password=x' https://clinic-rim.vercel.app/admin/login)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/astro/package.json'\\).version\\)\")",
+      "Bash(rm -f prod*.txt)",
+      "Bash(curl -s -H 'Origin: __TRACKED_VAR__' -X POST -d 'email=dralexandre@clinicarim.com.br&password=errada123456' __TRACKED_VAR__/admin/login)",
+      "Bash(curl -s -o /dev/null -H 'Origin: https://clinic-rim.vercel.app' -X POST -d 'email=dralexandre@clinicarim.com.br&password=7VSN-B9WK-Y6NT-KCNR' https://clinic-rim.vercel.app/admin/login)",
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(curl -s https://clinic-rim.vercel.app/api/diag-scrypt)",
+      "Bash(curl -s -c /tmp/a.txt -o /dev/null -w '  %{http_code} -> %{redirect_url}\\\\n' -H 'Origin: https://clinic-rim.vercel.app' -X POST -d 'email=dralexandre@clinicarim.com.br&password=7VSN-B9WK-Y6NT-KCNR' https://clinic-rim.vercel.app/admin/login)",
+      "PowerShell(npx eslint src astro.config.mjs --max-warnings 0 2>&1)",
+      "PowerShell(if \\($?\\) { \"LINT OK\" })",
+      "Bash(curl -s -o /dev/null -w '  /api/diag-scrypt: %{http_code}\\\\n' https://clinic-rim.vercel.app/api/diag-scrypt)",
+      "Bash(curl -s https://clinic-rim.vercel.app/api/health)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -H 'Origin: https://clinic-rim.vercel.app' -X POST -d 'email=x@y.com&password=z' https://clinic-rim.vercel.app/admin/login)",
+      "Bash(curl -s -o /dev/null -w '  %{http_code}\\\\n' -H 'Origin: https://malicioso.com' -X POST -d 'email=x@y.com&password=z' https://clinic-rim.vercel.app/admin/login)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

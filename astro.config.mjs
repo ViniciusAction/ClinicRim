@@ -17,6 +17,33 @@ export default defineConfig({
 
   adapter: vercel(),
 
+  security: {
+    /**
+     * OBRIGATÓRIO atrás de proxy (Vercel) — não é ajuste fino de segurança.
+     *
+     * O Astro só confia nos cabeçalhos `x-forwarded-host` / `x-forwarded-proto`
+     * se o host bater com algum padrão desta lista. Com a lista VAZIA (o
+     * default), ele descarta o host encaminhado, cai no fallback `localhost` e
+     * passa a calcular a própria origem como `https://localhost`.
+     *
+     * A consequência é silenciosa e total: a proteção CSRF embutida
+     * (`security.checkOrigin`, ligada por padrão) compara o cabeçalho `Origin`
+     * do navegador com essa origem inventada, nunca bate, e TODO envio de
+     * formulário responde 403 — login, publicar e excluir, todos quebrados em
+     * produção. Não aparece em `npm run dev`, porque essa checagem só existe no
+     * runtime SSR.
+     *
+     * `*.vercel.app` cobre tanto o alias de produção quanto as URLs geradas a
+     * cada deploy de preview.
+     */
+    allowedDomains: [
+      { protocol: 'https', hostname: '*.vercel.app' },
+      { protocol: 'https', hostname: 'clinicarim.com.br' },
+      { protocol: 'https', hostname: '*.clinicarim.com.br' },
+      { protocol: 'http', hostname: 'localhost' },
+    ],
+  },
+
   integrations: [
     // Ilhas interativas (acordeões, formulário, mapa).
     react(),
