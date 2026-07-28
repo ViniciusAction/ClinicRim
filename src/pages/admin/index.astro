@@ -1,49 +1,61 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { listPosts, deletePost, publishBackend, type AdminPostSummary } from '@/lib/admin/posts';
+import { listPosts, deletePost, type AdminPostSummary } from '@/lib/admin/posts';
+import { getDoctorById } from '@/data/doctors';
+import { clientIp } from '@/lib/utils/request';
 
 /**
- * Painel — lista de publicações do blog com ação de exclusão.
- * Criação fica em /admin/novo.
+ * Painel — lista os artigos do blog, com ações de editar e excluir.
+ * Criação fica em /admin/novo, edição em /admin/editar/[slug].
  *
- * A origem dos posts depende do backend ativo (ver lib/admin/posts.ts): disco
- * no dev, repositório no ar. Em produção, excluir também é um commit — o blog
- * só reflete a mudança depois do build.
+ * Rascunhos aparecem aqui junto dos publicados, marcados. É o painel: quem
+ * escreve precisa ver o que ainda não foi ao ar.
  */
 export const prerender = false;
 
-const backend = publishBackend();
+const currentUser = Astro.locals.user!;
+const ip = clientIp(Astro.request);
 
 let notice: { kind: 'success' | 'error'; text: string } | null = null;
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
+
   if (form.get('action') === 'delete') {
     const slug = String(form.get('slug') ?? '');
     try {
-      notice = (await deletePost(slug))
-        ? {
-            kind: 'success',
-            text:
-              backend === 'github'
-                ? `Artigo "${slug}" removido. O blog atualiza em 1-2 min, quando o build terminar.`
-                : `Artigo "${slug}" excluído.`,
-          }
-        : { kind: 'error', text: 'Não foi possível excluir este artigo.' };
+      notice = (await deletePost(slug, { userId: currentUser.id, ip }))
+        ? { kind: 'success', text: `Artigo "${slug}" excluído. Já saiu do blog.` }
+        : { kind: 'error', text: 'Não foi possível excluir: artigo não encontrado.' };
     } catch (error) {
       notice = { kind: 'error', text: `Falha ao excluir: ${(error as Error).message}` };
     }
   }
 }
 
-const created = Astro.url.searchParams.get('ok');
-if (created) {
+/* Mensagens vindas de outra página, por querystring. */
+const publishedSlug = Astro.url.searchParams.get('ok');
+const updatedSlug = Astro.url.searchParams.get('editado');
+const draftSlug = Astro.url.searchParams.get('rascunho');
+
+if (publishedSlug) {
   notice = {
     kind: 'success',
-    text:
-      backend === 'github'
-        ? `Artigo publicado! Estará em /blog/${created}/ em 1-2 min, quando o build terminar.`
-        : `Artigo publicado! Veja em /blog/${created}/`,
+    text: `Artigo publicado e já no ar em /blog/${publishedSlug}/`,
+  };
+} else if (updatedSlug) {
+  notice = { kind: 'success', text: `Alterações salvas. Já valendo em /blog/${updatedSlug}/` };
+} else if (draftSlug) {
+  notice = {
+    kind: 'success',
+    text: `Rascunho salvo. Só você e a equipe conseguem vê-lo em /blog/${draftSlug}/`,
+  };
+} else if (Astro.url.searchParams.has('senha')) {
+  notice = { kind: 'success', text: 'Senha alterada. Os outros dispositivos foram desconectados.' };
+} else if (Astro.url.searchParams.get('erro') === 'nao-encontrado') {
+  notice = {
+    kind: 'error',
+    text: 'Esse artigo não existe mais — provavelmente foi excluído.',
   };
 }
 
@@ -54,6 +66,13 @@ try {
 } catch (error) {
   loadError = `Não foi possível ler os artigos: ${(error as Error).message}`;
 }
+
+const published = posts.filter((post) => post.status === 'published');
+const drafts = posts.filter((post) => post.status !== 'published');
+
+const dateFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' });
+const actionClass =
+  'rounded-md border border-ink-200 px-3.5 py-1.5 font-sans text-xs font-medium text-ink-700 transition-colors hover:border-azure-300 hover:bg-azure-50';
 ---
 
 <AdminLayout title="Publicações">
@@ -61,7 +80,8 @@ try {
     <div>
       <h1 class="font-display text-ink-900 text-2xl font-medium">Publicações</h1>
       <p class="text-ink-500 mt-1 font-sans text-sm">
-        {posts.length} artigo{posts.length === 1 ? '' : 's'} no blog da clínica.
+        {published.length} publicado{published.length === 1 ? '' : 's'}
+        {drafts.length > 0 && ` · ${drafts.length} rascunho${drafts.length === 1 ? '' : 's'}`}
       </p>
     </div>
     <a
@@ -82,22 +102,6 @@ try {
       Novo artigo
     </a>
   </div>
-
-  {
-    backend === 'unavailable' && (
-      <div
-        role="alert"
-        class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-sans text-sm text-red-700"
-      >
-        <p class="font-medium">Publicação indisponível</p>
-        <p class="mt-1 leading-relaxed">
-          Defina <code>GITHUB_TOKEN</code> e <code>GITHUB_REPO</code> nas variáveis de ambiente do
-          projeto na Vercel. Sem elas não é possível publicar: o disco da função é somente leitura,
-          então o artigo precisa ser gravado por commit no repositório.
-        </p>
-      </div>
-    )
-  }
 
   {
     loadError && (
@@ -128,72 +132,72 @@ try {
 
   <div class="border-ink-100 mt-8 overflow-hidden rounded-2xl border bg-white">
     {
-      posts.length === 0 ? (
+      posts.length === 0 && !loadError ? (
         <p class="text-ink-500 p-10 text-center font-sans text-sm">
           Nenhum artigo ainda. Clique em <strong>Novo artigo</strong> para publicar o primeiro.
         </p>
       ) : (
         <ul class="divide-ink-100 divide-y">
-          {posts.map((post) => (
-            <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
-              <div class="min-w-0 flex-1">
-                <p class="text-ink-900 truncate font-sans text-sm font-medium">
-                  {post.title}
-                  {post.draft && (
-                    <span class="bg-gold-100 text-gold-700 ml-2 rounded-md px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] uppercase">
-                      rascunho
-                    </span>
-                  )}
-                </p>
-                <p class="text-ink-400 mt-0.5 font-sans text-xs">
-                  {post.specialty} · {post.pubDate} ·{' '}
-                  <code class="text-ink-500">{post.fileName}</code>
-                </p>
-              </div>
+          {posts.map((post) => {
+            const author = getDoctorById(post.authorId);
+            const isDraft = post.status !== 'published';
 
-              <a
-                href={`/blog/${post.slug}/`}
-                target="_blank"
-                rel="noopener"
-                class="border-ink-200 text-ink-700 hover:border-azure-300 hover:bg-azure-50 rounded-md border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors"
-              >
-                Ver ↗
-              </a>
+            return (
+              <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
+                <div class="min-w-0 flex-1">
+                  <p class="text-ink-900 font-sans text-sm font-medium">
+                    {post.title}
+                    {isDraft && (
+                      <span class="bg-gold-100 text-gold-700 ml-2 rounded-md px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] uppercase">
+                        rascunho
+                      </span>
+                    )}
+                  </p>
+                  <p class="text-ink-400 mt-0.5 font-sans text-xs">
+                    {post.specialty}
+                    {author && ` · ${author.name}`}
+                    {' · '}
+                    {post.publishedAt
+                      ? `publicado em ${dateFormat.format(post.publishedAt)}`
+                      : `editado em ${dateFormat.format(post.updatedAt)}`}
+                  </p>
+                </div>
 
-              <form
-                method="post"
-                onsubmit={`return confirm('Excluir o artigo “${post.title.replaceAll("'", '’').replaceAll('"', '”')}”? Esta ação não pode ser desfeita.');`}
-              >
-                <input type="hidden" name="action" value="delete" />
-                <input type="hidden" name="slug" value={post.slug} />
-                <button
-                  type="submit"
-                  class="rounded-md border border-red-200 px-3.5 py-1.5 font-sans text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
+                <a href={`/blog/${post.slug}/`} target="_blank" rel="noopener" class={actionClass}>
+                  {isDraft ? 'Pré-visualizar ↗' : 'Ver ↗'}
+                </a>
+
+                <a
+                  href={`/admin/editar/${post.slug}`}
+                  class="border-azure-300 text-azure-700 hover:bg-azure-50 rounded-md border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors"
                 >
-                  Excluir
-                </button>
-              </form>
-            </li>
-          ))}
+                  Editar
+                </a>
+
+                <form
+                  method="post"
+                  onsubmit={`return confirm('Excluir o artigo “${post.title.replaceAll("'", '’').replaceAll('"', '”')}”? Esta ação não pode ser desfeita.');`}
+                >
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="slug" value={post.slug} />
+                  <button
+                    type="submit"
+                    class="rounded-md border border-red-200 px-3.5 py-1.5 font-sans text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    Excluir
+                  </button>
+                </form>
+              </li>
+            );
+          })}
         </ul>
       )
     }
   </div>
 
   <p class="text-ink-400 mt-6 font-sans text-xs leading-relaxed">
-    {
-      backend === 'github' ? (
-        <>
-          ℹ️ Publicar e excluir criam um <strong>commit no repositório</strong>, que dispara o build
-          automático. O blog é estático, então a mudança aparece no site em cerca de 1 a 2 minutos —
-          e todo artigo fica versionado, com histórico e possibilidade de reverter.
-        </>
-      ) : (
-        <>
-          ℹ️ Em desenvolvimento (<code>npm run dev</code>) o artigo é gravado em disco e aparece no
-          blog imediatamente. No ar, a gravação passa a ser por commit no repositório.
-        </>
-      )
-    }
+    ℹ️ Os artigos ficam no banco de dados da clínica. Publicar, editar e excluir valem
+    <strong>na hora</strong> — não há build nem espera. Toda alteração num artigo publicado guarda a
+    versão anterior no histórico, então nada se perde por engano.
   </p>
 </AdminLayout>

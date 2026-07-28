@@ -3,23 +3,33 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import Container from '@/components/ui/Container.astro';
 import SectionHeading from '@/components/ui/SectionHeading.astro';
 import PostCard from '@/components/ui/PostCard.astro';
-import { getPublishedPosts } from '@/lib/blog';
-import { SPECIALTIES, SPECIALTY_SLUGS, specialtyFromSlug } from '@/data/specialties';
+import { getPublishedPostsBySpecialty } from '@/lib/blog';
+import { specialtyFromSlug } from '@/data/specialties';
 
 /**
- * Uma página por especialidade — gerada sempre (mesmo sem posts ainda), boa
- * para SEO de conteúdo médico segmentado (Nefrologia / Endocrinologia / Urologia).
+ * Uma página por especialidade — existe sempre, mesmo sem posts ainda, boa para
+ * SEO de conteúdo médico segmentado (Nefrologia / Endocrinologia / Urologia).
+ *
+ * Sob demanda porque os artigos vêm do Postgres. As três especialidades
+ * continuam fixas em src/data/specialties.ts; o que mudou é só de onde vêm os
+ * artigos de cada uma.
  */
-export async function getStaticPaths() {
-  return SPECIALTIES.map((specialty) => ({
-    params: { specialty: SPECIALTY_SLUGS[specialty] },
-  }));
-}
+export const prerender = false;
 
 const { specialty: slug } = Astro.params;
-const specialty = specialtyFromSlug(slug)!;
+const specialty = specialtyFromSlug(slug ?? '');
 
-const posts = (await getPublishedPosts()).filter((post) => post.data.specialty === specialty);
+/**
+ * Slug desconhecido é 404. Antes o `getStaticPaths` garantia que só as três
+ * existissem e o `!` no fim era seguro; sob demanda, qualquer string chega aqui
+ * e sem esta guarda `/blog/especialidade/qualquer-coisa` renderizaria uma
+ * página vazia com 200 — lixo para o Google indexar.
+ */
+if (!specialty) return Astro.rewrite('/404');
+
+const posts = await getPublishedPostsBySpecialty(specialty);
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
 ---
 
 <BaseLayout

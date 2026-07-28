@@ -1,20 +1,61 @@
 ---
-import { render } from 'astro:content';
 import BlogPost from '@/layouts/BlogPost.astro';
-import { getPublishedPosts } from '@/lib/blog';
+import { getPostBySlug, renderPostBody } from '@/lib/blog';
+import { SESSION_COOKIE, resolveSession } from '@/lib/auth';
+import { dbConfigError } from '@/lib/db';
 
-export async function getStaticPaths() {
-  const posts = await getPublishedPosts();
-  return posts.map((post) => ({
-    params: { slug: post.id },
-    props: { post },
-  }));
+/**
+ * Página do artigo, lida do Postgres.
+ *
+ * PRÉ-VISUALIZAÇÃO DE RASCUNHO
+ * Um rascunho é visível AQUI, e só aqui, para quem tem sessão de painel válida.
+ * É o que permite escrever, ver como ficou no site de verdade e só então
+ * publicar — algo que não existia quando os artigos eram arquivos markdown.
+ *
+ * A checagem é uma sessão de verdade (cookie → banco), não um parâmetro
+ * `?preview=1` na URL. Um parâmetro seria adivinhável, e rascunho de conteúdo
+ * médico não revisado não deve ficar a um palpite de distância de qualquer
+ * visitante — nem do rastreador do Google.
+ *
+ * Para quem não tem sessão, rascunho responde 404 idêntico ao de slug
+ * inexistente: nada na resposta revela que o artigo existe.
+ */
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+if (!slug) return Astro.rewrite('/404');
+
+/**
+ * Só tenta resolver a sessão se o banco estiver configurado. Sem isso, um
+ * ambiente sem as variáveis do Supabase estouraria aqui — numa página PÚBLICA —
+ * em vez de simplesmente não oferecer pré-visualização.
+ */
+const viewer = dbConfigError()
+  ? null
+  : await resolveSession(Astro.cookies.get(SESSION_COOKIE)?.value);
+
+const post = await getPostBySlug(slug, { includeUnpublished: Boolean(viewer) });
+
+if (!post) return Astro.rewrite('/404');
+
+const isPreview = post.status !== 'published';
+const body = await renderPostBody(post.bodyMd);
+
+if (isPreview) {
+  // Rascunho nunca em cache: quem está revisando precisa ver a última versão, e
+  // um proxy jamais deve guardar conteúdo não publicado.
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else {
+  Astro.response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
 }
-
-const { post } = Astro.props;
-const { Content } = await render(post);
 ---
 
-<BlogPost post={post}>
-  <Content />
+<BlogPost post={post} preview={isPreview}>
+  {/*
+    `set:html` com o HTML de `renderPostBody()`, que passa por rehype-sanitize.
+    Ver o aviso em src/lib/blog.ts: sem a sanitização, isto seria um XSS
+    armazenado servido a todo visitante da clínica.
+  */}
+  <Fragment set:html={body} />
 </BlogPost>

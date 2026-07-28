@@ -2,6 +2,25 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Container from '@/components/ui/Container.astro';
 import Button from '@/components/ui/Button.astro';
+
+/**
+ * Renderizada sob demanda, e não pré-renderizada.
+ *
+ * As rotas do blog (`/blog/[slug]`, `/blog/pagina/[page]`,
+ * `/blog/especialidade/[specialty]`) precisam devolver ESTA página quando o
+ * conteúdo não existe, via `Astro.rewrite('/404')`. E o Astro não consegue
+ * reescrever de uma rota sob demanda para uma rota pré-renderizada: o alvo virou
+ * HTML estático em disco, não um módulo renderizável, e a tentativa estoura
+ * `TypeError: module.page is not a function` — que o servidor converte em 500.
+ *
+ * O sintoma era exatamente o pior possível: pedir um artigo inexistente
+ * respondia **500**, não 404. Para um buscador, 500 significa "erro temporário,
+ * volte depois" — ele mantém a URL na fila em vez de removê-la do índice.
+ *
+ * Custo de ser sob demanda: nenhum relevante. Esta página não consulta o banco
+ * nem faz E/S; é só markup.
+ */
+export const prerender = false;
 ---
 
 <BaseLayout
@@ -13,13 +32,11 @@ import Button from '@/components/ui/Button.astro';
     as="section"
     class="flex min-h-[60vh] flex-col items-center justify-center text-center"
   >
-    <p class="font-sans text-sm font-medium tracking-[0.12em] text-azure-300 uppercase">
-      Erro 404
-    </p>
-    <h1 class="mt-3 font-display text-4xl leading-none font-medium text-white sm:text-5xl">
+    <p class="text-azure-300 font-sans text-sm font-medium tracking-[0.12em] uppercase">Erro 404</p>
+    <h1 class="font-display mt-3 text-4xl leading-none font-medium text-white sm:text-5xl">
       Página não encontrada
     </h1>
-    <p class="mt-4 max-w-md font-sans text-azure-100">
+    <p class="text-azure-100 mt-4 max-w-md font-sans">
       O conteúdo que você procura não existe ou foi movido.
     </p>
     <Button href="/" class="mt-8">Voltar para a página inicial</Button>

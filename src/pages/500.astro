@@ -1,0 +1,56 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Container from '@/components/ui/Container.astro';
+import Button from '@/components/ui/Button.astro';
+
+/**
+ * Página de erro do servidor.
+ *
+ * POR QUE ELA PASSOU A SER NECESSÁRIA
+ * Enquanto o blog era estático, não havia como uma página pública falhar em
+ * runtime: tudo já estava gerado em disco. Agora as páginas do blog leem o
+ * Postgres a cada visita, então uma indisponibilidade do banco virou um cenário
+ * real — e verificável: subindo o servidor com credenciais inválidas, `/blog`
+ * respondia 500 com o corpo VAZIO. Página branca.
+ *
+ * Do ponto de vista de segurança isso estava correto (nem stack trace, nem nome
+ * de tabela, nem host do banco chegavam ao visitante — foi conferido). Do ponto
+ * de vista de quem entrou no site para achar o telefone da clínica, era uma
+ * página quebrada sem explicação e sem saída.
+ *
+ * O Astro renderiza este arquivo automaticamente para qualquer erro não tratado
+ * em rota sob demanda, então um arquivo cobre todas elas.
+ *
+ * ⚠️ NÃO exiba `Astro.props.error` aqui. O Astro disponibiliza a exceção nesta
+ * página, e imprimi-la devolveria a mensagem do Postgres para o visitante. O
+ * erro já vai para o log do servidor, que é onde ele serve para algo.
+ */
+---
+
+<BaseLayout
+  title="Erro temporário — Clínica RIM"
+  description="Página temporariamente indisponível."
+  noindex
+>
+  <Container
+    as="section"
+    class="flex min-h-[60vh] flex-col items-center justify-center text-center"
+  >
+    <p class="text-azure-300 font-sans text-sm font-medium tracking-[0.12em] uppercase">
+      Erro temporário
+    </p>
+    <h1 class="font-display mt-3 text-4xl leading-none font-medium text-white sm:text-5xl">
+      Não foi possível carregar esta página
+    </h1>
+    <p class="text-azure-100 mt-4 max-w-md font-sans">
+      Tivemos uma falha momentânea ao buscar o conteúdo. Tente recarregar em alguns instantes — as
+      demais páginas do site seguem funcionando normalmente.
+    </p>
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+      <Button href="/">Ir para a página inicial</Button>
+      <a href="/#contato" class="text-azure-200 font-sans text-sm font-medium hover:text-white">
+        Falar com a clínica
+      </a>
+    </div>
+  </Container>
+</BaseLayout>

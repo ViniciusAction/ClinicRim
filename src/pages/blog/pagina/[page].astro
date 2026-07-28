@@ -1,0 +1,92 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Container from '@/components/ui/Container.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import PostCard from '@/components/ui/PostCard.astro';
+import { getPublishedPosts, paginatePosts } from '@/lib/blog';
+
+/**
+ * Páginas 2+ da listagem (a página 1 vive em /blog).
+ *
+ * Era `getStaticPaths()`, que enumerava as páginas no build. Com os artigos no
+ * Postgres isso não serve mais: publicar o 10º artigo cria a página 2, e o
+ * build não estaria lá para descobrir. Agora é sob demanda.
+ *
+ * POR QUE /blog/pagina/2 E NÃO /blog/2
+ * Esta rota morava em `src/pages/blog/[page].astro`. Enquanto as duas eram
+ * estáticas, `/blog/[page]` e `/blog/[slug]` conviviam: o build enumerava os
+ * caminhos exatos de cada uma e não havia ambiguidade. Sob demanda, as duas
+ * viraram o MESMO padrão (`/blog/:algo`) e o Astro passou a avisar
+ * "A dynamic SSR route cannot be defined more than once" — hoje um warning, nas
+ * próximas versões um erro fatal de build. Qual das duas atenderia `/blog/2`
+ * ficava indefinido.
+ *
+ * O prefixo resolve sem ambiguidade e é mais legível. Estas páginas são
+ * `noindex` desde sempre, então não há custo de SEO em mudar o endereço.
+ */
+export const prerender = false;
+
+const { page } = Astro.params;
+
+/**
+ * `/blog/pagina/abc` e `/blog/pagina/1` são 404.
+ *
+ * Sem esta guarda, `Number('abc')` é NaN, o `paginatePosts` normaliza para a
+ * página 1 e o site responderia 200 em QUALQUER caminho aqui embaixo —
+ * conteúdo duplicado infinito para o Google indexar. A página 1 é /blog/, e ter
+ * dois endereços para o mesmo conteúdo também é duplicação.
+ */
+const requestedPage = Number(page);
+if (!/^\d+$/.test(page ?? '') || requestedPage < 2) {
+  return Astro.rewrite('/404');
+}
+
+const posts = await getPublishedPosts();
+const { items, currentPage, totalPages } = paginatePosts(posts, requestedPage);
+
+// Pedir uma página além do fim também é 404, e não a última página repetida.
+if (requestedPage > totalPages) {
+  return Astro.rewrite('/404');
+}
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+---
+
+<BaseLayout
+  title={`Blog — Página ${currentPage} — Clínica RIM`}
+  description="Conteúdo médico sobre Nefrologia, Endocrinologia e Urologia produzido pela equipe da Clínica RIM."
+  noindex
+>
+  <Container as="section" class="py-16 sm:py-20">
+    <SectionHeading eyebrow="Blog" title="Conteúdo da Clínica RIM" as="h1" />
+
+    <ul class="mx-auto mt-12 grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        items.map((post) => (
+          <li>
+            <PostCard post={post} />
+          </li>
+        ))
+      }
+    </ul>
+
+    <nav class="mt-12 flex justify-center gap-3" aria-label="Paginação do blog">
+      <a
+        href={currentPage - 1 === 1 ? '/blog/' : `/blog/pagina/${currentPage - 1}/`}
+        class="rounded-md border border-white/15 px-5 py-2.5 font-sans text-sm font-medium text-white hover:bg-white/5"
+      >
+        Página anterior
+      </a>
+      {
+        currentPage < totalPages && (
+          <a
+            href={`/blog/pagina/${currentPage + 1}/`}
+            class="rounded-md border border-white/15 px-5 py-2.5 font-sans text-sm font-medium text-white hover:bg-white/5"
+          >
+            Próxima página
+          </a>
+        )
+      }
+    </nav>
+  </Container>
+</BaseLayout>
