@@ -11,7 +11,9 @@ export const prerender = false;
  *  2. KEEP-ALIVE — um projeto Supabase no plano gratuito é PAUSADO após 7 dias
  *     sem nenhuma atividade. Uma clínica que publica uma vez por mês cairia
  *     nisso e o painel apareceria quebrado justamente quando fosse usado.
- *     O cron diário em vercel.json bate aqui e mantém o projeto acordado.
+ *     Quem bate aqui todo dia é o workflow .github/workflows/keep-alive.yml.
+ *     Ele vive no GitHub, e não no host, para sobreviver à migração da Vercel
+ *     para a Hostinger — o cron de vercel.json deixa de existir junto com ela.
  *     (No plano Pro da Supabase não há pausa, mas o endpoint segue útil.)
  *
  * Fica FORA de /api/admin de propósito: precisa responder sem sessão, para o
@@ -30,9 +32,7 @@ export const GET: APIRoute = async () => {
   try {
     // head + count: acorda o Postgres com o menor trabalho possível e sem
     // trafegar dado nenhum.
-    const { error } = await db()
-      .from('admin_users')
-      .select('id', { count: 'exact', head: true });
+    const { error } = await db().from('admin_users').select('id', { count: 'exact', head: true });
 
     if (error) {
       console.error('[health] banco indisponível:', error.message);

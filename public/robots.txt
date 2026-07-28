@@ -3,5 +3,13 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 
-# Atualize o domínio em astro.config.mjs (site) — o sitemap é gerado no build.
+# Atualize o domínio nos dois endereços abaixo ao trocar o `site` em
+# astro.config.mjs. Buscadores aceitam várias linhas `Sitemap:`.
+#
+# sitemap-index.xml — páginas estáticas, gerado no build pelo @astrojs/sitemap.
+# sitemap-blog.xml  — artigos e páginas de especialidade. Precisa ser separado
+#                     porque os artigos vivem no Postgres e são renderizados sob
+#                     demanda: o build não conhece os slugs, então o sitemap do
+#                     build não os incluiria. Ver src/pages/sitemap-blog.xml.ts.
 Sitemap: https://www.clinicarim.com.br/sitemap-index.xml
+Sitemap: https://www.clinicarim.com.br/sitemap-blog.xml

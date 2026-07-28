@@ -1,0 +1,569 @@
+---
+import { SPECIALTIES, type Specialty } from '@/data/specialties';
+import { doctors } from '@/data/doctors';
+import type { PostStatus } from '@/lib/db-types';
+
+/**
+ * Formulário de artigo — usado por /admin/novo E /admin/editar/[slug].
+ *
+ * Existe como componente porque os dois formulários são o MESMO formulário: os
+ * campos, as regras, os rótulos e as dicas são idênticos. Mantê-los duplicados
+ * garantiria que um dia um campo fosse acrescentado só em um dos dois — e o
+ * sintoma seria "editar apaga tal informação", que é caro de diagnosticar.
+ *
+ * A página dona é que processa o POST: este componente só desenha e devolve os
+ * valores preenchidos quando há erro de validação.
+ */
+export interface PostFormValues {
+  title: string;
+  description: string;
+  specialty: Specialty;
+  authorId: string;
+  tags: string;
+  coverAlt: string;
+  bodyMd: string;
+  status: PostStatus;
+}
+
+interface Props {
+  values: PostFormValues;
+  errors: string[];
+  /** Rótulo do botão principal — "Publicar artigo" ou "Salvar alterações". */
+  submitLabel: string;
+  /** `true` quando o artigo já tem uma capa enviada (habilita "remover capa"). */
+  hasCover?: boolean;
+}
+
+const { values, errors, submitLabel, hasCover = false } = Astro.props;
+
+const inputClass =
+  'block w-full rounded-md border border-ink-200 bg-white px-4 py-2.5 font-sans text-sm text-ink-900 focus:border-azure-400 focus:ring-2 focus:ring-azure-400 focus:outline-none';
+const labelClass = 'mb-1.5 block font-sans text-sm font-medium text-ink-900';
+const hintClass = 'mt-1 font-sans text-xs text-ink-400';
+---
+
+{
+  errors.length > 0 && (
+    <div
+      role="alert"
+      class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-sans text-sm text-red-700"
+    >
+      <p class="font-medium">Corrija os pontos abaixo:</p>
+      <ul class="mt-2 list-disc space-y-1 pl-5">
+        {errors.map((error) => (
+          <li>{error}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+<form
+  method="post"
+  enctype="multipart/form-data"
+  class="border-ink-100 mt-8 space-y-6 rounded-2xl border bg-white p-8 sm:p-9"
+>
+  <div>
+    <label for="title" class={labelClass}>Título *</label>
+    <input id="title" name="title" type="text" required value={values.title} class={inputClass} />
+    <p class={hintClass}>Entre 8 e 140 caracteres. O endereço do artigo é gerado a partir dele.</p>
+  </div>
+
+  <div>
+    <label for="description" class={labelClass}>Resumo (SEO e cards do blog) *</label>
+    <textarea id="description" name="description" rows="2" required class={inputClass}
+      >{values.description}</textarea
+    >
+    <p class={hintClass}>Entre 20 e 300 caracteres. É o texto que aparece no Google.</p>
+  </div>
+
+  <div class="grid gap-6 sm:grid-cols-2">
+    <div>
+      <label for="specialty" class={labelClass}>Especialidade *</label>
+      <select id="specialty" name="specialty" class={inputClass}>
+        {
+          SPECIALTIES.map((specialty) => (
+            <option value={specialty} selected={specialty === values.specialty}>
+              {specialty}
+            </option>
+          ))
+        }
+      </select>
+    </div>
+    <div>
+      <label for="authorId" class={labelClass}>Autor *</label>
+      <select id="authorId" name="authorId" class={inputClass}>
+        {
+          doctors.map((doctor) => (
+            <option value={doctor.id} selected={doctor.id === values.authorId}>
+              {doctor.name} — {doctor.role}
+            </option>
+          ))
+        }
+      </select>
+      <p class={hintClass}>
+        O artigo é assinado por este médico, independente de quem está publicando.
+      </p>
+    </div>
+  </div>
+
+  <div>
+    <label for="tags" class={labelClass}>Tags (separadas por vírgula)</label>
+    <input
+      id="tags"
+      name="tags"
+      type="text"
+      placeholder="ex.: prevenção, rins, hipertensão"
+      value={values.tags}
+      class={inputClass}
+    />
+  </div>
+
+  <div class="grid gap-6 sm:grid-cols-2">
+    <div>
+      <label for="cover" class={labelClass}>Capa (JPG, PNG ou WebP — opcional)</label>
+      <input
+        id="cover"
+        name="cover"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        class="text-ink-600 file:bg-azure-50 file:text-azure-700 hover:file:bg-azure-100 block w-full font-sans text-sm file:mr-3 file:rounded-md file:border-0 file:px-4 file:py-2 file:font-sans file:text-sm file:font-medium"
+      />
+      <p class={hintClass}>
+        Máximo 4 MB. Sem envio, usamos a arte padrão da especialidade.
+        {hasCover && ' Este artigo já tem uma capa — enviar outra substitui a atual.'}
+      </p>
+    </div>
+    <div>
+      <label for="coverAlt" class={labelClass}>Descrição da capa (acessibilidade)</label>
+      <input
+        id="coverAlt"
+        name="coverAlt"
+        type="text"
+        placeholder="ex.: Médica examinando exame de ultrassom"
+        value={values.coverAlt}
+        class={inputClass}
+      />
+      <p class={hintClass}>Obrigatória quando você envia uma capa própria.</p>
+    </div>
+  </div>
+
+  {
+    hasCover && (
+      <label class="text-ink-700 flex items-center gap-3 font-sans text-sm">
+        <input
+          type="checkbox"
+          name="removeCover"
+          class="border-ink-300 text-azure-600 focus:ring-azure-400 size-4 rounded"
+        />
+        Remover a capa enviada e voltar para a arte padrão da especialidade
+      </label>
+    )
+  }
+
+  <div>
+    <div class="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
+      <label for="bodyMd" class="text-ink-900 block font-sans text-sm font-medium">
+        Conteúdo do artigo *
+      </label>
+      <div class="flex gap-1" role="group" aria-label="Modo de edição">
+        <button
+          type="button"
+          data-tab="escrever"
+          class="editor-tab rounded-md px-3 py-1 font-sans text-xs font-medium"
+          aria-pressed="true"
+        >
+          Escrever
+        </button>
+        <button
+          type="button"
+          data-tab="visualizar"
+          class="editor-tab rounded-md px-3 py-1 font-sans text-xs font-medium"
+          aria-pressed="false"
+        >
+          Visualizar
+        </button>
+      </div>
+    </div>
+
+    {
+      /*
+      Barra de formatação.
+
+      O cliente não precisa decorar `**` nem `##`: seleciona o texto e clica. Os
+      botões inserem a marcação de Markdown por baixo, então o formato gravado
+      continua o mesmo — nada no resto do sistema (renderização, sanitização,
+      histórico, RSS) precisou mudar para isto existir.
+
+      `data-wrap` envolve a seleção (negrito, itálico, link); `data-prefix`
+      marca o início de cada linha selecionada (títulos, listas, citação).
+      `type="button"` em todos: sem isso, cada clique enviaria o formulário.
+    */
+    }
+    <div
+      class="border-ink-200 bg-ink-50/60 flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 px-2 py-1.5"
+      role="toolbar"
+      aria-label="Formatação do texto"
+      id="editor-toolbar"
+    >
+      <button type="button" class="fmt" data-prefix="## " title="Subtítulo (seção do artigo)">
+        <span class="font-display text-sm font-semibold">Título</span>
+      </button>
+      <button type="button" class="fmt" data-prefix="### " title="Subtítulo menor">
+        <span class="font-display text-xs font-semibold">Subtítulo</span>
+      </button>
+      <span class="bg-ink-200 mx-1 h-5 w-px" aria-hidden="true"></span>
+      {/*
+        Rótulo escrito em TODOS os botões, não só ícone com `title`.
+
+        Antes eram um "N" e um "I" e o significado só aparecia no tooltip, ao
+        parar o mouse em cima — o que exclui quem usa toque (não existe hover no
+        celular) e obriga qualquer pessoa a caçar por tentativa. Numa barra com
+        oito botões usada uma vez por mês, adivinhar ícone é custo puro.
+      */}
+      <button type="button" class="fmt" data-wrap="**" title="Negrito (Ctrl+B)">
+        <span class="font-bold">Negrito</span>
+      </button>
+      <button type="button" class="fmt" data-wrap="_" title="Itálico (Ctrl+I)">
+        <span class="italic">Itálico</span>
+      </button>
+      <span class="bg-ink-200 mx-1 h-5 w-px" aria-hidden="true"></span>
+      <button type="button" class="fmt" data-prefix="- " title="Lista com marcadores">
+        ● Lista
+      </button>
+      <button type="button" class="fmt" data-prefix="1. " title="Lista numerada">1. Numerada</button
+      >
+      <button type="button" class="fmt" data-prefix="> " title="Citação em destaque">
+        ❝ Citação
+      </button>
+      <span class="bg-ink-200 mx-1 h-5 w-px" aria-hidden="true"></span>
+      <button type="button" class="fmt" data-link title="Inserir link (Ctrl+K)">🔗 Link</button>
+    </div>
+
+    <textarea
+      id="bodyMd"
+      name="bodyMd"
+      rows="18"
+      required
+      placeholder={'Escreva o artigo aqui.\n\nSelecione um trecho e use os botões acima para formatar.'}
+      class="border-ink-200 text-ink-900 focus:border-azure-400 focus:ring-azure-400 block w-full rounded-b-md border bg-white px-4 py-3 font-sans text-sm leading-relaxed focus:ring-2 focus:outline-none"
+      >{values.bodyMd}</textarea
+    >
+
+    {
+      /*
+      Painel da prévia. Começa escondido; a aba "Visualizar" o mostra e busca o
+      HTML no servidor, pelo mesmo renderizador da página publicada — ver
+      src/pages/api/admin/preview.ts.
+    */
+    }
+    <div
+      id="editor-preview"
+      hidden
+      class="border-ink-200 prose prose-sm max-w-none rounded-b-md border bg-white px-5 py-4"
+      aria-live="polite"
+    >
+      <p class="text-ink-400 font-sans text-sm">Carregando pré-visualização…</p>
+    </div>
+
+    <p class={hintClass}>
+      Mínimo 50 caracteres. Use <strong>Título</strong> para dividir o artigo em seções — ajuda o leitor
+      e o Google. Em <strong>Visualizar</strong> você vê exatamente como vai sair no site.
+    </p>
+  </div>
+
+  <fieldset class="border-ink-100 border-t pt-6">
+    <legend class="text-ink-900 mb-3 font-sans text-sm font-medium">Situação</legend>
+    <div class="space-y-3">
+      {/*
+        `id` + `for` explícitos, e não só o input aninhado no label.
+        O aninhamento já associa os dois para o navegador, mas o nome acessível
+        fica dependendo de o leitor de tela achar o texto dentro de dois <span> —
+        e a regra de a11y do eslint, com razão, não consegue garantir isso. Com
+        `for` a associação é declarada, não inferida.
+      */}
+      <label
+        for="status-published"
+        class="text-ink-700 grid grid-cols-[auto_1fr] items-start gap-x-3 font-sans text-sm"
+      >
+        <input
+          id="status-published"
+          type="radio"
+          name="status"
+          value="published"
+          checked={values.status === 'published'}
+          class="border-ink-300 text-azure-600 focus:ring-azure-400 row-span-2 mt-0.5 size-4"
+        />
+        <strong class="text-ink-900 font-medium">Publicado</strong>
+        <span class="text-ink-400 text-xs">No ar imediatamente, na listagem do blog e no RSS.</span>
+      </label>
+      <label
+        for="status-draft"
+        class="text-ink-700 grid grid-cols-[auto_1fr] items-start gap-x-3 font-sans text-sm"
+      >
+        <input
+          id="status-draft"
+          type="radio"
+          name="status"
+          value="draft"
+          checked={values.status !== 'published'}
+          class="border-ink-300 text-azure-600 focus:ring-azure-400 row-span-2 mt-0.5 size-4"
+        />
+        <strong class="text-ink-900 font-medium">Rascunho</strong>
+        <span class="text-ink-400 text-xs">
+          Fora do blog, do RSS e do Google. Visível só para quem está logado no painel — dá para
+          abrir a página do artigo e ver como ficou antes de publicar.
+        </span>
+      </label>
+    </div>
+  </fieldset>
+
+  <div class="border-ink-100 flex items-center gap-4 border-t pt-6">
+    <button
+      type="submit"
+      class="bg-azure-600 hover:bg-azure-500 focus-visible:ring-azure-500 inline-flex h-12 items-center justify-center rounded-md px-8 font-sans text-sm font-medium text-white transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+    >
+      {submitLabel}
+    </button>
+    <a href="/admin" class="text-ink-500 hover:text-ink-800 font-sans text-sm font-medium">
+      Cancelar
+    </a>
+  </div>
+
+  <style>
+    /* Botões da barra de formatação. */
+    #editor-toolbar .fmt {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      border-radius: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      font-family: var(--font-sans, sans-serif);
+      font-size: 0.75rem;
+      color: var(--color-ink-700, #3f4a54);
+      cursor: pointer;
+      transition:
+        background-color 120ms,
+        color 120ms;
+    }
+    #editor-toolbar .fmt:hover {
+      background-color: var(--color-azure-50, #eff8fc);
+      color: var(--color-azure-800, #0d4f6c);
+    }
+    #editor-toolbar .fmt:focus-visible {
+      outline: 2px solid var(--color-azure-400, #38a4cc);
+      outline-offset: 1px;
+    }
+
+    /* Abas Escrever / Visualizar. */
+    .editor-tab {
+      color: var(--color-ink-500, #6b7783);
+      cursor: pointer;
+    }
+    .editor-tab[aria-pressed='true'] {
+      background-color: var(--color-azure-50, #eff8fc);
+      color: var(--color-azure-800, #0d4f6c);
+    }
+  </style>
+
+  <script>
+    /**
+     * Editor de artigo: barra de formatação + pré-visualização.
+     *
+     * Vanilla, sem editor de terceiros. Um WYSIWYG de verdade (TipTap, Quill)
+     * traria centenas de KB, uma ilha React e — o problema de fato — um segundo
+     * formato de conteúdo para converter, guardar e sanitizar. Aqui o formato
+     * continua sendo Markdown: os botões só escrevem a marcação por baixo, então
+     * renderização, sanitização, histórico e RSS seguem intocados.
+     *
+     * O que o cliente ganha é o que ele pediu: não precisa decorar sintaxe, e vê o
+     * resultado antes de publicar.
+     */
+    const textarea = document.querySelector<HTMLTextAreaElement>('#bodyMd');
+    const toolbar = document.querySelector<HTMLElement>('#editor-toolbar');
+    const preview = document.querySelector<HTMLElement>('#editor-preview');
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.editor-tab');
+
+    if (textarea && toolbar && preview) {
+      /**
+       * Escreve no textarea preservando o histórico de desfazer.
+       *
+       * `execCommand('insertText')` está formalmente obsoleto, mas é o único jeito
+       * de alterar um textarea sem destruir a pilha de Ctrl+Z do navegador. Mexer
+       * em `.value` direto apaga o histórico — e alguém que formatou por engano no
+       * meio de um artigo longo perderia a chance de desfazer. O fallback cobre
+       * quem não suportar.
+       */
+      const write = (text: string) => {
+        textarea.focus();
+        if (!document.execCommand('insertText', false, text)) {
+          const { selectionStart: start, selectionEnd: end } = textarea;
+          textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
+          textarea.selectionStart = textarea.selectionEnd = start + text.length;
+        }
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+
+      /** Envolve a seleção: **negrito**, _itálico_. */
+      const wrap = (marker: string) => {
+        const { selectionStart: start, selectionEnd: end, value } = textarea;
+        const selected = value.slice(start, end);
+
+        // Clicar de novo com o mesmo trecho selecionado desfaz a marcação.
+        if (
+          selected.startsWith(marker) &&
+          selected.endsWith(marker) &&
+          selected.length > marker.length * 2
+        ) {
+          write(selected.slice(marker.length, -marker.length));
+          return;
+        }
+
+        if (!selected) {
+          // Sem seleção: insere os marcadores e deixa o cursor no meio, pronto
+          // para digitar — em vez de largar `****` na tela para o usuário resolver.
+          write(marker + marker);
+          textarea.selectionStart = textarea.selectionEnd = start + marker.length;
+          return;
+        }
+
+        write(marker + selected + marker);
+      };
+
+      /** Prefixa cada linha da seleção: ## título, - lista, > citação. */
+      const prefixLines = (prefix: string) => {
+        const { selectionStart: start, selectionEnd: end, value } = textarea;
+
+        // Estende a seleção até o começo da primeira linha e o fim da última, para
+        // que clicar com o cursor no meio de uma linha ainda a marque inteira.
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEndIndex = value.indexOf('\n', end);
+        const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+
+        const block = value.slice(lineStart, lineEnd);
+        const lines = block.split('\n');
+        const allPrefixed = lines.every((line) => line.startsWith(prefix) || !line.trim());
+
+        const result = lines
+          .map((line) => {
+            if (!line.trim()) return line;
+            // Já marcado com o mesmo prefixo → remove (alterna).
+            if (allPrefixed) return line.slice(prefix.length);
+            // Troca um prefixo de bloco por outro em vez de acumular "## - texto".
+            return prefix + line.replace(/^(#{2,3} |[-*] |\d+\. |> )/, '');
+          })
+          .join('\n');
+
+        textarea.setSelectionRange(lineStart, lineEnd);
+        write(result);
+      };
+
+      /** Link markdown, com o texto selecionado como rótulo. */
+      const insertLink = () => {
+        const { selectionStart: start, selectionEnd: end, value } = textarea;
+        const label = value.slice(start, end) || 'texto do link';
+        const url = window.prompt('Endereço do link (inclua https://):', 'https://');
+
+        if (!url) return;
+        write(`[${label}](${url})`);
+      };
+
+      toolbar.addEventListener('click', (event) => {
+        const button = (event.target as HTMLElement).closest<HTMLElement>('.fmt');
+        if (!button) return;
+
+        if (button.dataset.wrap) wrap(button.dataset.wrap);
+        else if (button.dataset.prefix) prefixLines(button.dataset.prefix);
+        else if (button.hasAttribute('data-link')) insertLink();
+      });
+
+      // Atalhos que todo mundo já conhece de qualquer editor de texto.
+      textarea.addEventListener('keydown', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+
+        const shortcuts: Record<string, () => void> = {
+          b: () => wrap('**'),
+          i: () => wrap('_'),
+          k: insertLink,
+        };
+
+        const action = shortcuts[event.key.toLowerCase()];
+        if (action) {
+          event.preventDefault();
+          action();
+        }
+      });
+
+      /* ── Pré-visualização ─────────────────────────────────────────────────── */
+
+      let lastRendered: string | null = null;
+
+      const renderPreview = async () => {
+        const markdown = textarea.value;
+
+        // Nada mudou desde a última prévia: não refaz a requisição.
+        if (markdown === lastRendered) return;
+
+        if (!markdown.trim()) {
+          preview.innerHTML =
+            '<p class="font-sans text-sm text-ink-400">Nada para mostrar ainda — escreva o artigo na aba Escrever.</p>';
+          lastRendered = markdown;
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/admin/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown }),
+          });
+
+          const data = (await response.json()) as { html?: string; error?: string };
+
+          if (!response.ok || data.error) {
+            throw new Error(data.error ?? `HTTP ${response.status}`);
+          }
+
+          /**
+           * `innerHTML` com HTML que veio do servidor — e é seguro, porque o
+           * endpoint devolve a saída do rehype-sanitize, o mesmo caminho da página
+           * publicada. É justamente o ponto de renderizar no servidor: a prévia
+           * mostra o resultado real, sanitização inclusive.
+           */
+          preview.innerHTML = data.html ?? '';
+          lastRendered = markdown;
+        } catch (error) {
+          preview.innerHTML =
+            '<p class="font-sans text-sm text-red-600">Não foi possível gerar a pré-visualização. O texto está salvo no editor — troque para Escrever e tente de novo.</p>';
+          console.error('[editor] prévia falhou:', error);
+        }
+      };
+
+      const setTab = (name: string) => {
+        const writing = name === 'escrever';
+
+        textarea.hidden = !writing;
+        toolbar.hidden = !writing;
+        preview.hidden = writing;
+
+        tabs.forEach((tab) => tab.setAttribute('aria-pressed', String(tab.dataset.tab === name)));
+
+        if (writing) textarea.focus();
+        else void renderPreview();
+      };
+
+      tabs.forEach((tab) =>
+        tab.addEventListener('click', () => setTab(tab.dataset.tab ?? 'escrever')),
+      );
+
+      /**
+       * Se o formulário voltar com erro de validação, o navegador precisa poder
+       * focar o textarea para apontar o campo — e não conseguiria se ele estivesse
+       * escondido na aba de prévia. Voltar para "Escrever" ao enviar resolve.
+       */
+      textarea.form?.addEventListener('submit', () => {
+        if (textarea.hidden) setTab('escrever');
+      });
+    }
+  </script>
+</form>

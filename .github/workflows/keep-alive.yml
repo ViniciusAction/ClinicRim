@@ -1,0 +1,81 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# Mantém o projeto Supabase acordado.
+#
+# POR QUE ISSO É CRÍTICO E NÃO OPCIONAL
+# Um projeto Supabase no plano Free é PAUSADO após 7 dias sem nenhuma
+# atividade no banco. O site público não conta: ele é estático e não toca o
+# Postgres em requisição nenhuma de visitante. Só o painel /admin toca.
+#
+# Uma clínica que publica uma vez por mês cai exatamente nesse buraco: no dia
+# em que o médico for escrever, o banco está pausado, o login falha e o painel
+# aparece quebrado — justamente na única hora em que alguém precisa dele.
+#
+# Isso era resolvido pelo cron em vercel.json. Ao sair da Vercel, aquele cron
+# deixa de existir. Este workflow o substitui, e de propósito NÃO mora no host:
+# vive no GitHub, então continua funcionando na Vercel, na Hostinger e durante
+# a transição entre as duas, sem depender de nada do painel de hospedagem.
+#
+# CONFIGURAÇÃO
+# Defina a variável HEALTH_URL em:
+#   GitHub > Settings > Secrets and variables > Actions > Variables > New
+#
+#   · durante a transição:  https://<preview>.vercel.app/api/health
+#   · depois do DNS:        https://www.clinicarim.com.br/api/health
+#
+# Sem a variável, o default abaixo é usado. Se ele apontar para um domínio que
+# ainda não está no ar, o workflow FALHA de propósito — e o e-mail de falha do
+# GitHub é o aviso de que algo precisa de atenção. Falhar barulhento é melhor
+# que "passar" sem ter acordado o banco.
+# ═════════════════════════════════════════════════════════════════════════════
+name: keep-alive
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 em Brasília. Diário, como era o cron da Vercel.
+    - cron: '0 9 * * *'
+  # Permite rodar na mão pela aba Actions — útil para acordar o banco na hora
+  # e para testar a configuração sem esperar até amanhã.
+  workflow_dispatch:
+
+# Sem permissão de escrita: este job só faz uma requisição HTTP de leitura.
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Acordar o banco via /api/health
+        env:
+          HEALTH_URL: ${{ vars.HEALTH_URL || 'https://www.clinicarim.com.br/api/health' }}
+        run: |
+          set -euo pipefail
+
+          # Um projeto que estava pausado leva alguns segundos para responder na
+          # primeira batida, e um cold start do servidor soma mais. Por isso as
+          # tentativas: uma falha isolada de rede não deve virar alarme falso.
+          for attempt in 1 2 3 4 5; do
+            echo "→ tentativa $attempt: $HEALTH_URL"
+
+            # Separa corpo e status para poder exigir os DOIS. Um 200 com
+            # {"status":"degraded"} significa que o site respondeu mas o banco
+            # não — que é precisamente a falha que este workflow deve detectar.
+            response=$(curl -sS --max-time 30 -w '\n%{http_code}' "$HEALTH_URL" || true)
+            body=$(printf '%s' "$response" | sed '$d')
+            code=$(printf '%s' "$response" | tail -n1)
+
+            echo "   HTTP $code — $body"
+
+            if [ "$code" = "200" ] && printf '%s' "$body" | grep -q '"status":"ok"'; then
+              echo "✔ banco acordado e respondendo."
+              exit 0
+            fi
+
+            [ "$attempt" -lt 5 ] && sleep 20
+          done
+
+          echo "✖ /api/health não respondeu {\"status\":\"ok\"} após 5 tentativas."
+          echo "  Verifique: o projeto Supabase está pausado? SUPABASE_URL e"
+          echo "  SUPABASE_SERVICE_ROLE_KEY estão definidas no host? HEALTH_URL"
+          echo "  aponta para o ambiente que está de fato no ar?"
+          exit 1

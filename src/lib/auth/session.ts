@@ -41,13 +41,15 @@ export async function createSession(userId: string, context: SessionContext = {}
   const token = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + SESSION_HOURS * 3600_000);
 
-  const { error } = await db().from('admin_sessions').insert({
-    user_id: userId,
-    token_hash: hashToken(token),
-    user_agent: context.userAgent ?? null,
-    ip: context.ip ?? null,
-    expires_at: expiresAt.toISOString(),
-  });
+  const { error } = await db()
+    .from('admin_sessions')
+    .insert({
+      user_id: userId,
+      token_hash: hashToken(token),
+      user_agent: context.userAgent ?? null,
+      ip: context.ip ?? null,
+      expires_at: expiresAt.toISOString(),
+    });
 
   if (error) throw new Error(`Não foi possível abrir a sessão: ${error.message}`);
 
@@ -59,7 +61,7 @@ interface SessionJoinRow {
   expires_at: string;
   admin_users: {
     id: string;
-    doctor_id: DoctorId;
+    doctor_id: DoctorId | null;
     email: string;
     name: string;
     active: boolean;

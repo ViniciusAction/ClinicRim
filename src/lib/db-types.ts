@@ -13,7 +13,8 @@ export type PostStatus = 'draft' | 'published' | 'archived';
 
 export interface AdminUserRow {
   id: string;
-  doctor_id: DoctorId;
+  /** `null` = conta de equipe, sem perfil de médico no site (migration 0002). */
+  doctor_id: DoctorId | null;
   email: string;
   name: string;
   password_hash: string;
@@ -86,7 +87,8 @@ export interface AuditLogRow {
  */
 export interface SessionUser {
   id: string;
-  doctorId: DoctorId;
+  /** `null` = conta de equipe. Não afeta o que a conta pode fazer no painel. */
+  doctorId: DoctorId | null;
   email: string;
   name: string;
   mustChangePassword: boolean;

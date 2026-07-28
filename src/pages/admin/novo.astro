@@ -1,219 +1,74 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { SPECIALTIES, type Specialty } from '@/data/specialties';
+import PostForm, { type PostFormValues } from '@/components/admin/PostForm.astro';
+import { createPost, parsePostForm, validatePostInput } from '@/lib/admin/posts';
 import { doctors } from '@/data/doctors';
-import { createPost, validateNewPost, type NewPostInput } from '@/lib/admin/posts';
+import { clientIp } from '@/lib/utils/request';
 
 /**
- * Editor de novo artigo. O POST (multipart, por causa da capa) é processado
- * aqui mesmo: valida, grava o post pelo backend ativo (disco no dev, commit no
- * repositório em produção) e redireciona ao painel.
- * Em caso de erro, o formulário volta preenchido.
+ * Novo artigo. O POST (multipart, por causa da capa) é processado aqui mesmo:
+ * valida, grava no Postgres e redireciona ao painel. Em caso de erro, o
+ * formulário volta preenchido — o médico não perde o texto que escreveu.
  */
 export const prerender = false;
 
+const currentUser = Astro.locals.user!;
+
 let errors: string[] = [];
-const values = {
+let values: PostFormValues = {
   title: '',
   description: '',
-  specialty: 'Nefrologia' as Specialty,
-  author: doctors[0]?.id ?? '',
+  specialty: 'Nefrologia',
+  authorId: doctors[0]?.id ?? '',
   tags: '',
   coverAlt: '',
-  body: '',
-  draft: false,
+  bodyMd: '',
+  status: 'published',
 };
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
+  const input = parsePostForm(form);
 
-  values.title = String(form.get('title') ?? '');
-  values.description = String(form.get('description') ?? '');
-  values.specialty = String(form.get('specialty') ?? '') as Specialty;
-  values.author = String(form.get('author') ?? '');
-  values.tags = String(form.get('tags') ?? '');
-  values.coverAlt = String(form.get('coverAlt') ?? '');
-  values.body = String(form.get('body') ?? '');
-  values.draft = form.get('draft') === 'on';
-
-  const coverEntry = form.get('cover');
-  const input: NewPostInput = {
-    title: values.title,
-    description: values.description,
-    specialty: values.specialty,
-    author: values.author,
-    tags: values.tags
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean),
-    body: values.body,
-    draft: values.draft,
-    cover: coverEntry instanceof File ? coverEntry : null,
-    coverAlt: values.coverAlt,
+  // Devolvidos ao formulário se a validação recusar.
+  values = {
+    title: input.title,
+    description: input.description,
+    specialty: input.specialty,
+    authorId: input.authorId,
+    tags: input.tags.join(', '),
+    coverAlt: input.coverAlt ?? '',
+    bodyMd: input.bodyMd,
+    status: input.status,
   };
 
-  errors = validateNewPost(input);
+  errors = validatePostInput(input);
+
   if (errors.length === 0) {
     try {
-      const slug = await createPost(input);
-      return Astro.redirect(`/admin?ok=${encodeURIComponent(slug)}`);
+      const slug = await createPost(input, {
+        userId: currentUser.id,
+        ip: clientIp(Astro.request),
+      });
+
+      const param = input.status === 'published' ? 'ok' : 'rascunho';
+      return Astro.redirect(`/admin?${param}=${encodeURIComponent(slug)}`);
     } catch (error) {
-      // Falha de rede/token/permissão na API do GitHub cai aqui: o formulário
-      // volta preenchido com a causa, em vez de perder o texto do artigo.
-      errors = [`Não foi possível publicar: ${(error as Error).message}`];
+      // Falha de banco ou de upload da capa cai aqui, com o texto preservado.
+      errors = [`Não foi possível salvar: ${(error as Error).message}`];
     }
   }
 }
-
-const inputClass =
-  'block w-full rounded-md border border-ink-200 bg-white px-4 py-2.5 font-sans text-sm text-ink-900 focus:border-azure-400 focus:ring-2 focus:ring-azure-400 focus:outline-none';
-const labelClass = 'mb-1.5 block font-sans text-sm font-medium text-ink-900';
 ---
 
 <AdminLayout title="Novo artigo">
   <div class="mx-auto max-w-3xl">
     <h1 class="font-display text-ink-900 text-2xl font-medium">Novo artigo</h1>
-    <p class="text-ink-500 mt-1 font-sans text-sm">
-      Escreva em Markdown (títulos com <code>##</code>, negrito com <code>**texto**</code>, listas
-      com <code>-</code>). A capa é opcional — sem envio, usamos a arte padrão da especialidade.
+    <p class="text-ink-500 mt-1 font-sans text-sm leading-relaxed">
+      Escreva em Markdown. Publicado entra no ar na hora; rascunho fica visível só para a equipe,
+      para você conferir como ficou antes de liberar.
     </p>
 
-    {
-      errors.length > 0 && (
-        <div
-          role="alert"
-          class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-sans text-sm text-red-700"
-        >
-          <p class="font-medium">Corrija os pontos abaixo:</p>
-          <ul class="mt-2 list-disc space-y-1 pl-5">
-            {errors.map((e) => (
-              <li>{e}</li>
-            ))}
-          </ul>
-        </div>
-      )
-    }
-
-    <form
-      method="post"
-      enctype="multipart/form-data"
-      class="border-ink-100 mt-8 space-y-6 rounded-2xl border bg-white p-8 sm:p-9"
-    >
-      <div>
-        <label for="title" class={labelClass}>Título *</label>
-        <input
-          id="title"
-          name="title"
-          type="text"
-          required
-          value={values.title}
-          class={inputClass}
-        />
-      </div>
-
-      <div>
-        <label for="description" class={labelClass}>Resumo (SEO e cards do blog) *</label>
-        <textarea id="description" name="description" rows="2" required class={inputClass}
-          >{values.description}</textarea
-        >
-      </div>
-
-      <div class="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label for="specialty" class={labelClass}>Especialidade *</label>
-          <select id="specialty" name="specialty" class={inputClass}>
-            {
-              SPECIALTIES.map((s) => (
-                <option value={s} selected={s === values.specialty}>
-                  {s}
-                </option>
-              ))
-            }
-          </select>
-        </div>
-        <div>
-          <label for="author" class={labelClass}>Autor *</label>
-          <select id="author" name="author" class={inputClass}>
-            {
-              doctors.map((d) => (
-                <option value={d.id} selected={d.id === values.author}>
-                  {d.name} — {d.role}
-                </option>
-              ))
-            }
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label for="tags" class={labelClass}>Tags (separadas por vírgula)</label>
-        <input
-          id="tags"
-          name="tags"
-          type="text"
-          placeholder="ex.: prevenção, rins, hipertensão"
-          value={values.tags}
-          class={inputClass}
-        />
-      </div>
-
-      <div class="grid gap-6 sm:grid-cols-2">
-        <div>
-          <label for="cover" class={labelClass}>Capa (JPG, PNG ou WebP — opcional)</label>
-          <input
-            id="cover"
-            name="cover"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            class="text-ink-600 file:bg-azure-50 file:text-azure-700 hover:file:bg-azure-100 block w-full font-sans text-sm file:mr-3 file:rounded-md file:border-0 file:px-4 file:py-2 file:font-sans file:text-sm file:font-medium"
-          />
-        </div>
-        <div>
-          <label for="coverAlt" class={labelClass}>Descrição da capa (acessibilidade)</label>
-          <input
-            id="coverAlt"
-            name="coverAlt"
-            type="text"
-            placeholder="ex.: Médica examinando exame de ultrassom"
-            value={values.coverAlt}
-            class={inputClass}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label for="body" class={labelClass}>Conteúdo do artigo (Markdown) *</label>
-        <textarea
-          id="body"
-          name="body"
-          rows="16"
-          required
-          placeholder={'## Primeiro subtítulo\n\nTexto do artigo...'}
-          class={`${inputClass} font-mono leading-relaxed`}>{values.body}</textarea
-        >
-      </div>
-
-      <label class="text-ink-700 flex items-center gap-3 font-sans text-sm">
-        <input
-          type="checkbox"
-          name="draft"
-          checked={values.draft}
-          class="border-ink-300 text-azure-600 focus:ring-azure-400 size-4 rounded"
-        />
-        Salvar como rascunho (não aparece no blog)
-      </label>
-
-      <div class="border-ink-100 flex items-center gap-4 border-t pt-6">
-        <button
-          type="submit"
-          class="bg-azure-600 hover:bg-azure-500 focus-visible:ring-azure-500 inline-flex h-12 items-center justify-center rounded-md px-8 font-sans text-sm font-medium text-white transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          Publicar artigo
-        </button>
-        <a href="/admin" class="text-ink-500 hover:text-ink-800 font-sans text-sm font-medium">
-          Cancelar
-        </a>
-      </div>
-    </form>
+    <PostForm values={values} errors={errors} submitLabel="Salvar artigo" />
   </div>
 </AdminLayout>

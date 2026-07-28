@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { SESSION_COOKIE, resolveSession } from '@/lib/auth';
-import { dbConfigError } from '@/lib/db';
+import { dbConfigError, env } from '@/lib/db';
 
 /**
  * Porteiro da área restrita.
@@ -32,12 +32,38 @@ function normalize(pathname: string): string {
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
+ * Primeiro valor de um cabeçalho que pode vir em lista.
+ *
+ * Com proxies em cadeia, `x-forwarded-host` chega como
+ * "site.com.br, interno.local" — e o primeiro é o que o cliente pediu. Sem
+ * isso, a string inteira era comparada com um host único e nunca batia.
+ */
+function firstValue(raw: string | null): string | null {
+  const first = raw?.split(',')[0]?.trim();
+  return first || null;
+}
+
+/**
  * Proteção CSRF — substitui o `security.checkOrigin` do Astro.
  *
- * Compara o `Origin` enviado pelo navegador com o host que o cliente
- * REALMENTE pediu, lido de `x-forwarded-host` (o cabeçalho que o proxy da
- * Vercel preenche) com fallback para `host`. Sem derivação intermediária: se
- * o navegador postou para este host, os dois valores batem por construção.
+ * Compara o HOST do `Origin` enviado pelo navegador com o host que o cliente
+ * REALMENTE pediu, lido de `x-forwarded-host` (o cabeçalho que o proxy
+ * preenche) com fallback para `host`.
+ *
+ * POR QUE COMPARA HOST, E NÃO A ORIGEM INTEIRA
+ * A versão anterior montava `${proto}://${host}` com
+ * `proto = x-forwarded-proto ?? 'https'` e exigia igualdade exata de string.
+ * Aquele `?? 'https'` era um CHUTE sobre o comportamento do proxy: um host que
+ * não mande o cabeçalho, ou que mande o esquema INTERNO (`http`) em vez do
+ * externo, produz uma origem esperada errada — e todo POST do painel volta 403,
+ * login incluído. Esse bug já custou dois hotfixes neste projeto (ver git log),
+ * e trocar de host é justamente o momento em que ele reaparece.
+ *
+ * Comparar só o host elimina o chute: não há mais nada a derivar. E não perde
+ * segurança — o que CSRF exige é que o documento que disparou o POST esteja no
+ * NOSSO host. Um `Origin` com esquema diferente e host igual é o nosso próprio
+ * site atrás de um proxy que reporta o esquema interno, não um site atacante.
+ * Downgrade de esquema é problema de TLS/HSTS, resolvido pelo host, não aqui.
  *
  * Segunda camada de defesa (independente desta): o cookie de sessão é
  * SameSite=Lax, então o navegador nem envia a credencial num POST vindo de
@@ -48,21 +74,26 @@ const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 function assertSameOrigin(request: Request): Response | null {
   if (!UNSAFE_METHODS.has(request.method)) return null;
 
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const host = forwardedHost ?? request.headers.get('host');
+  const forwardedHost = firstValue(request.headers.get('x-forwarded-host'));
+  const host = forwardedHost ?? firstValue(request.headers.get('host'));
 
   if (!host) {
     console.error('[csrf] requisição sem host — recusada');
     return new Response('Origem não verificável.', { status: 403 });
   }
 
-  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
-  const expected = `${proto}://${host}`;
   const origin = request.headers.get('origin');
   const secFetchSite = request.headers.get('sec-fetch-site');
 
-  // Sinal 1: o `Origin` bate com o host pedido. É o caso normal.
-  if (origin && origin === expected) return null;
+  // Sinal 1: o host do `Origin` bate com o host pedido. É o caso normal.
+  // `URL` porque comparar strings à mão erra em porta e em `Origin: null`.
+  if (origin && origin !== 'null') {
+    try {
+      if (new URL(origin).host === host) return null;
+    } catch {
+      // Origin malformado: cai nos sinais seguintes em vez de estourar 500.
+    }
+  }
 
   /**
    * Sinal 2: `Sec-Fetch-Site: same-origin`.
@@ -82,9 +113,9 @@ function assertSameOrigin(request: Request): Response | null {
   if (secFetchSite === 'same-origin') return null;
 
   console.error(
-    '[csrf] recusado — Origin=%s esperado=%s sec-fetch-site=%s (x-forwarded-host=%s, host=%s)',
+    '[csrf] recusado — Origin=%s host-esperado=%s sec-fetch-site=%s (x-forwarded-host=%s, host=%s)',
     origin ?? '(ausente)',
-    expected,
+    host,
     secFetchSite ?? '(ausente)',
     forwardedHost ?? '(ausente)',
     request.headers.get('host') ?? '(ausente)',
@@ -144,12 +175,33 @@ export const onRequest = defineMiddleware(async (context, next) => {
 });
 
 /**
+ * Origem do Supabase Storage (`https://<ref>.supabase.co`), para a CSP.
+ *
+ * Só o esquema + host: a CSP não aceita caminho como fonte, e mesmo se
+ * aceitasse não faria diferença. Devolve string vazia quando a variável não
+ * está definida, para o item ser descartado em vez de virar uma diretiva
+ * quebrada como `img-src 'self' undefined`.
+ */
+function storageOrigin(): string {
+  const url = env('SUPABASE_URL');
+  if (!url) return '';
+
+  try {
+    return new URL(url).origin;
+  } catch {
+    console.error('[csp] SUPABASE_URL não é uma URL válida — origem omitida da CSP');
+    return '';
+  }
+}
+
+/**
  * Cabeçalhos de segurança do painel.
  *
  * `no-store` é o mais importante: sem ele, um proxy ou o botão "voltar" do
  * navegador pode reexibir uma página do painel depois do logout.
- * A CSP é restritiva: a única origem externa liberada é o Google Fonts, que o
- * AdminLayout carrega. Sem CDN de script, sem analytics, sem iframe.
+ * A CSP é restritiva: as únicas origens externas liberadas são o Google Fonts,
+ * que o AdminLayout carrega, e o Storage do Supabase, de onde vêm as capas.
+ * Sem CDN de script, sem analytics, sem iframe.
  */
 function withAdminHeaders(response: Response): Response {
   response.headers.set('Cache-Control', 'no-store, must-revalidate');
@@ -173,7 +225,20 @@ function withAdminHeaders(response: Response): Response {
       // handlers de confirmação de exclusão. O AdminLayout usa Google Fonts.
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "script-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
+      /**
+       * A origem do Supabase Storage entra aqui porque é de lá que vêm as capas
+       * dos artigos. A pré-visualização do editor renderiza o HTML real do
+       * artigo, e com `img-src 'self'` puro a capa apareceria quebrada na prévia
+       * e correta no site — uma prévia que mente, que é o defeito que ela existe
+       * para não ter.
+       *
+       * Só a origem do NOSSO projeto, montada da variável de ambiente. Não é
+       * `https:` genérico: liberar qualquer host para imagem no painel deixaria
+       * o conteúdo de um artigo buscar recurso de fora, e uma URL de imagem
+       * escolhida por um atacante é um sinal de "esta página foi aberta" saindo
+       * do painel. Sem SUPABASE_URL definida, o item simplesmente não entra.
+       */
+      ['img-src', "'self'", 'data:', 'blob:', storageOrigin()].filter(Boolean).join(' '),
       "font-src 'self' https://fonts.gstatic.com",
       "connect-src 'self'",
       "form-action 'self'",

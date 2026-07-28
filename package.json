@@ -11,10 +11,13 @@
     "check": "astro check",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,astro,css,md,mdx}\"",
-    "seed:admins": "node --env-file-if-exists=.env scripts/seed-admins.ts"
+    "seed:admins": "node --env-file-if-exists=.env scripts/seed-admins.ts",
+    "create:user": "node --env-file-if-exists=.env scripts/create-user.ts",
+    "migrate:posts": "node --env-file-if-exists=.env scripts/migrate-posts-to-db.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.2.0",
+    "@astrojs/node": "^9.5.5",
     "@astrojs/react": "^4.2.0",
     "@astrojs/rss": "^4.0.11",
     "@astrojs/sitemap": "^3.3.0",
@@ -30,6 +33,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.0",
+    "rehype-sanitize": "^6.0.0",
     "tailwindcss": "^4.0.0",
     "zod": "^3.24.0"
   },

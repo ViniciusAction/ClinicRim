@@ -1,0 +1,82 @@
+---
+import { Image } from 'astro:assets';
+import capaNefrologia from '@/assets/blog/capa-nefrologia.svg';
+import capaEndocrinologia from '@/assets/blog/capa-endocrinologia.svg';
+import capaUrologia from '@/assets/blog/capa-urologia.svg';
+import type { Specialty } from '@/data/specialties';
+
+/**
+ * Capa do artigo — resolve os DOIS tipos de imagem que passaram a existir
+ * quando os posts saíram de arquivos markdown e foram para o Postgres.
+ *
+ *  · capa NÃO enviada (`coverUrl` nulo) → a arte padrão da especialidade.
+ *    São imports estáticos, então o Astro continua otimizando no build e
+ *    servindo WebP com hash no nome. Nada se perdeu aqui.
+ *
+ *  · capa ENVIADA (`coverUrl` preenchido) → arquivo no bucket `blog-covers` do
+ *    Supabase Storage, servido pela URL pública.
+ *
+ * POR QUE A CAPA ENVIADA USA <img> E NÃO <Image>
+ * O `<Image>` do Astro só otimiza o que ele conhece em tempo de build. Uma capa
+ * enviada pelo painel depois do deploy não existe no build — para otimizá-la o
+ * Astro precisaria de um endpoint de imagem em runtime, que na prática vira um
+ * redimensionador de imagens exposto na internet, com o custo de CPU e a
+ * superfície de ataque que isso traz. Não vale para uma capa por artigo.
+ *
+ * O que compensa a falta de otimização, e é por isso que estes atributos não
+ * são decorativos:
+ *   · `width`/`height` explícitos — reservam o espaço e evitam layout shift (CLS);
+ *   · `loading`/`decoding` — capa do artigo carrega cedo, capa de card não;
+ *   · o bucket recusa arquivo acima de 4 MB e qualquer coisa que não seja
+ *     JPG/PNG/WebP, então não há como subir um TIFF de 40 MB por acidente.
+ */
+interface Props {
+  coverUrl: string | null;
+  specialty: Specialty;
+  alt: string;
+  width: number;
+  height: number;
+  class?: string;
+  /** `true` na capa do artigo (acima da dobra), `false` nos cards da listagem. */
+  priority?: boolean;
+}
+
+const {
+  coverUrl,
+  specialty,
+  alt,
+  width,
+  height,
+  class: className,
+  priority = false,
+} = Astro.props;
+
+const DEFAULT_COVERS: Record<Specialty, ImageMetadata> = {
+  Nefrologia: capaNefrologia,
+  Endocrinologia: capaEndocrinologia,
+  Urologia: capaUrologia,
+};
+---
+
+{
+  coverUrl ? (
+    <img
+      src={coverUrl}
+      alt={alt}
+      width={width}
+      height={height}
+      class={className}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding={priority ? 'sync' : 'async'}
+    />
+  ) : (
+    <Image
+      src={DEFAULT_COVERS[specialty]}
+      alt={alt}
+      width={width}
+      height={height}
+      class={className}
+      priority={priority}
+    />
+  )
+}

@@ -1,0 +1,115 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PostForm, { type PostFormValues } from '@/components/admin/PostForm.astro';
+import { getPostForEdit, parsePostForm, updatePost, validatePostInput } from '@/lib/admin/posts';
+import { clientIp } from '@/lib/utils/request';
+
+/**
+ * Edição de artigo — a peça que faltava no painel.
+ *
+ * Antes só existia criar e excluir: consertar uma vírgula num artigo publicado
+ * significava excluir e reescrever inteiro, perdendo o endereço (e portanto
+ * qualquer link já compartilhado) e a data de publicação original.
+ *
+ * Aqui o artigo é carregado no MESMO formulário da criação (o componente
+ * PostForm), e `updatePost` guarda a versão anterior em `post_revisions` antes
+ * de sobrescrever — o histórico que o git dava quando o conteúdo era arquivo.
+ */
+export const prerender = false;
+
+const currentUser = Astro.locals.user!;
+const { slug } = Astro.params;
+
+if (!slug) return Astro.redirect('/admin');
+
+const post = await getPostForEdit(slug);
+
+// Slug inexistente volta ao painel com aviso, em vez de estourar uma página de
+// erro — o caso comum é um link velho para um artigo já excluído.
+if (!post) return Astro.redirect('/admin?erro=nao-encontrado');
+
+let errors: string[] = [];
+let values: PostFormValues = {
+  title: post.title,
+  description: post.description,
+  specialty: post.specialty,
+  authorId: post.authorId,
+  tags: post.tags.join(', '),
+  coverAlt: post.coverAlt,
+  bodyMd: post.bodyMd,
+  status: post.status,
+};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const input = parsePostForm(form);
+
+  values = {
+    title: input.title,
+    description: input.description,
+    specialty: input.specialty,
+    authorId: input.authorId,
+    tags: input.tags.join(', '),
+    coverAlt: input.coverAlt ?? '',
+    bodyMd: input.bodyMd,
+    status: input.status,
+  };
+
+  errors = validatePostInput(input);
+
+  /**
+   * A validação exige descrição para capa ENVIADA nesta requisição. Na edição
+   * há um caso a mais: o artigo já tem capa, nenhum arquivo novo foi enviado e
+   * o campo de descrição foi apagado. O banco recusaria
+   * (posts_cover_needs_alt), então a mensagem sai daqui, legível.
+   */
+  if (post.coverPath && !input.cover && !input.removeCover && !input.coverAlt?.trim()) {
+    errors.push('Este artigo tem capa enviada, então a descrição dela não pode ficar vazia.');
+  }
+
+  if (errors.length === 0) {
+    try {
+      const newSlug = await updatePost(slug, input, {
+        userId: currentUser.id,
+        ip: clientIp(Astro.request),
+      });
+
+      const param = input.status === 'published' ? 'editado' : 'rascunho';
+      return Astro.redirect(`/admin?${param}=${encodeURIComponent(newSlug)}`);
+    } catch (error) {
+      errors = [`Não foi possível salvar: ${(error as Error).message}`];
+    }
+  }
+}
+
+const publishedAtLabel = post.publishedAt
+  ? post.publishedAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  : null;
+---
+
+<AdminLayout title="Editar artigo">
+  <div class="mx-auto max-w-3xl">
+    <h1 class="font-display text-ink-900 text-2xl font-medium">Editar artigo</h1>
+    <p class="text-ink-500 mt-1 font-sans text-sm leading-relaxed">
+      {
+        publishedAtLabel
+          ? `Publicado em ${publishedAtLabel}. Editar não muda essa data nem tira o artigo do ar.`
+          : 'Este artigo ainda é um rascunho e não está visível no blog.'
+      }
+    </p>
+
+    <p class="text-ink-400 mt-3 font-sans text-xs leading-relaxed">
+      Endereço atual: <code class="text-ink-600">/blog/{post.slug}/</code>
+      <br />
+      Mudar o título gera um endereço novo — links já compartilhados para o antigo deixam de
+      funcionar. Se o artigo já foi divulgado, prefira ajustar o texto e deixar o título como está.
+    </p>
+
+    <PostForm
+      values={values}
+      errors={errors}
+      submitLabel="Salvar alterações"
+      hasCover={Boolean(post.coverPath)}
+    />
+  </div>
+</AdminLayout>

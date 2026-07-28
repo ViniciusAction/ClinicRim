@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import PostCover from '@/components/ui/PostCover.astro';
 import type { BlogPost } from '@/lib/blog';
 import { SPECIALTY_SLUGS } from '@/data/specialties';
 
@@ -8,38 +8,55 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const formattedDate = post.data.pubDate.toLocaleDateString('pt-BR', {
+
+/**
+ * Rascunho não aparece em listagem pública, mas este card também serve a
+ * pré-visualização, então `publishedAt` pode ser nulo. Cai em `updatedAt`, que
+ * sempre existe, em vez de estourar num `.toLocaleDateString` de `null`.
+ */
+const date = post.publishedAt ?? post.updatedAt;
+const formattedDate = date.toLocaleDateString('pt-BR', {
   day: '2-digit',
   month: 'long',
   year: 'numeric',
 });
 ---
 
-<article class="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-900 transition-colors duration-300">
-  <a href={`/blog/${post.id}/`} class="block aspect-[16/9] w-full overflow-hidden bg-ink-800">
-    <Image
-      src={post.data.cover}
-      alt={post.data.coverAlt}
+<article
+  class="group bg-ink-900 flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 transition-colors duration-300"
+>
+  <a href={`/blog/${post.slug}/`} class="bg-ink-800 block aspect-[16/9] w-full overflow-hidden">
+    <PostCover
+      coverUrl={post.coverUrl}
+      specialty={post.specialty}
+      alt={post.coverAlt}
       width={640}
       height={360}
       class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
     />
   </a>
   <div class="flex flex-1 flex-col p-8">
-    <div class="flex items-center gap-3 font-sans text-xs text-ink-300">
+    <div class="text-ink-300 flex items-center gap-3 font-sans text-xs">
       <a
-        href={`/blog/especialidade/${SPECIALTY_SLUGS[post.data.specialty]}/`}
-        class="rounded-md bg-azure-500/10 px-2.5 py-1 font-medium text-azure-300 hover:bg-azure-500/20"
+        href={`/blog/especialidade/${SPECIALTY_SLUGS[post.specialty]}/`}
+        class="bg-azure-500/10 text-azure-300 hover:bg-azure-500/20 rounded-md px-2.5 py-1 font-medium"
       >
-        {post.data.specialty}
+        {post.specialty}
       </a>
-      <time datetime={post.data.pubDate.toISOString()}>{formattedDate}</time>
+      <time datetime={date.toISOString()}>{formattedDate}</time>
+      {
+        post.status !== 'published' && (
+          <span class="bg-gold-100 text-gold-700 rounded-md px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] uppercase">
+            rascunho
+          </span>
+        )
+      }
     </div>
-    <h3 class="mt-3 font-display text-lg font-medium text-white">
-      <a href={`/blog/${post.id}/`} class="hover:text-azure-300">
-        {post.data.title}
+    <h3 class="font-display mt-3 text-lg font-medium text-white">
+      <a href={`/blog/${post.slug}/`} class="hover:text-azure-300">
+        {post.title}
       </a>
     </h3>
-    <p class="mt-2 flex-1 font-sans text-sm leading-relaxed text-azure-100">{post.data.description}</p>
+    <p class="text-azure-100 mt-2 flex-1 font-sans text-sm leading-relaxed">{post.description}</p>
   </div>
 </article>

@@ -12,15 +12,21 @@ import { checkLoginRateLimit } from './rate-limit';
 import { createSession, revokeAllForUser, type SessionContext } from './session';
 
 /**
- * Usuários do painel: os 3 médicos, todos com o mesmo poder.
+ * Usuários do painel: os 3 médicos + contas de equipe, todos com o mesmo poder.
  *
  * Não existe tabela de papéis nem verificação de permissão em lugar nenhum —
- * é intencional. O requisito é que os três possam fazer tudo. A única
- * distinção que o código faz é "é você mesmo?" (trocar a própria senha) versus
- * "é outra pessoa?" (redefinir a senha de um colega).
+ * é intencional. O requisito é que todo mundo com acesso possa fazer tudo. A
+ * única distinção que o código faz é "é você mesmo?" (trocar a própria senha)
+ * versus "é outra pessoa?" (redefinir a senha de um colega).
+ *
+ * MÉDICO versus CONTA DE EQUIPE
+ * `doctorId` liga a conta ao perfil público em src/data/doctors.ts e vale
+ * `null` para quem não é médico (agência, secretaria). É vínculo de perfil,
+ * NUNCA permissão: o autor do artigo é escolhido no formulário, então uma
+ * conta de equipe publica normalmente, atribuindo o texto ao médico certo.
  *
  * RECUPERAÇÃO DE SENHA SEM E-MAIL
- * Como os três são admin plenos, quem esquece a senha pede a um colega, que
+ * Como todos são admin plenos, quem esquece a senha pede a um colega, que
  * redefine em /admin/usuarios e informa a senha temporária. Isso elimina a
  * necessidade de provedor de e-mail transacional, de token de recuperação com
  * expiração e de toda a superfície de ataque que vem junto.
@@ -40,8 +46,7 @@ const DUMMY_HASH =
 const GENERIC_LOGIN_ERROR = 'E-mail ou senha incorretos.';
 
 export type LoginResult =
-  | { ok: true; token: string; user: SessionUser }
-  | { ok: false; message: string };
+  { ok: true; token: string; user: SessionUser } | { ok: false; message: string };
 
 export async function authenticate(
   rawEmail: string,
@@ -153,7 +158,8 @@ export async function changeOwnPassword(
     .update({ password_hash: await hashPassword(newPassword), must_change_password: false })
     .eq('id', userId);
 
-  if (updateError) return { ok: false, errors: [`Não foi possível salvar: ${updateError.message}`] };
+  if (updateError)
+    return { ok: false, errors: [`Não foi possível salvar: ${updateError.message}`] };
 
   // Derruba as outras sessões, mantendo a atual: se alguém tinha acesso
   // indevido, a troca de senha o expulsa de fato.
@@ -194,7 +200,10 @@ export async function resetPasswordFor(
     .maybeSingle();
 
   if (error || !data) {
-    return { ok: false, message: `Não foi possível redefinir a senha: ${error?.message ?? 'usuário não encontrado'}` };
+    return {
+      ok: false,
+      message: `Não foi possível redefinir a senha: ${error?.message ?? 'usuário não encontrado'}`,
+    };
   }
 
   // A senha antiga não vale mais — as sessões abertas com ela também não.
@@ -213,7 +222,8 @@ export async function resetPasswordFor(
 
 export interface AdminUserSummary {
   id: string;
-  doctorId: DoctorId;
+  /** `null` = conta de equipe, sem perfil de médico no site. */
+  doctorId: DoctorId | null;
   email: string;
   name: string;
   active: boolean;
@@ -231,7 +241,7 @@ export async function listUsers(): Promise<AdminUserSummary[]> {
 
   return (data ?? []).map((row) => ({
     id: row.id as string,
-    doctorId: row.doctor_id as DoctorId,
+    doctorId: row.doctor_id as DoctorId | null,
     email: row.email as string,
     name: row.name as string,
     active: row.active as boolean,
@@ -275,7 +285,10 @@ export async function setUserActive(
     .maybeSingle();
 
   if (error || !data) {
-    return { ok: false, message: `Não foi possível alterar o acesso: ${error?.message ?? 'usuário não encontrado'}` };
+    return {
+      ok: false,
+      message: `Não foi possível alterar o acesso: ${error?.message ?? 'usuário não encontrado'}`,
+    };
   }
 
   if (!active) await revokeAllForUser(targetUserId);

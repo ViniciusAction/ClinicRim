@@ -28,16 +28,22 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Lê variável de ambiente tanto no runtime da Vercel (process.env) quanto no
- * `npm run dev`, onde o Astro carrega o .env em import.meta.env.
+ * Lê variável de ambiente — SEMPRE de process.env, em runtime.
+ *
+ * ⚠️ NÃO troque isto por `import.meta.env[key]`, nem como fallback.
+ * O Vite substitui `import.meta.env` em tempo de build por um objeto literal
+ * com os valores do .env. Como a leitura aqui é por chave dinâmica, ele não
+ * consegue substituir só a chave usada — inlina o objeto INTEIRO, e a
+ * SERVICE_ROLE_KEY acaba em texto puro dentro de dist/server/chunks/. Foi um
+ * vazamento real deste projeto, encontrado com grep no dist.
+ *
+ * Quem garante que o process.env está preenchido:
+ *   · produção  — Vercel > Environment Variables / hPanel > Node.js > Env vars;
+ *   · npm run dev — o laço `loadEnv` no topo de astro.config.mjs;
+ *   · scripts/  — a flag `--env-file-if-exists=.env` no package.json.
  */
 export function env(key: string): string | undefined {
-  const fromProcess = typeof process !== 'undefined' ? process.env?.[key] : undefined;
-  if (fromProcess) return fromProcess;
-
-  // `?.` porque os scripts de scripts/ rodam no Node puro, onde `import.meta.env`
-  // não existe — sem isso, o acesso estouraria antes de chegar no process.env.
-  return (import.meta.env as Record<string, string | undefined> | undefined)?.[key];
+  return typeof process !== 'undefined' ? process.env?.[key] : undefined;
 }
 
 /**
@@ -52,7 +58,7 @@ export function dbConfigError(): string | null {
 
   if (missing.length === 0) return null;
 
-  return `Banco de dados não configurado: defina ${missing.join(' e ')} nas variáveis de ambiente (.env no local, Vercel > Settings > Environment Variables em produção).`;
+  return `Banco de dados não configurado: defina ${missing.join(' e ')} nas variáveis de ambiente (.env no local; em produção, Vercel > Settings > Environment Variables ou hPanel > Node.js > Environment variables na Hostinger).`;
 }
 
 let cached: SupabaseClient | null = null;
