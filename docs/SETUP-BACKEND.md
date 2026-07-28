@@ -14,8 +14,14 @@ na URL `.vercel.app`.
 1. Acesse [supabase.com](https://supabase.com) e crie a conta (pode ser com o GitHub).
 2. **New project**:
    - **Name:** `clinica-rim`
-   - **Database Password:** gere uma forte e guarde no gerenciador de senhas.
+   - **Database Password:** gere uma forte e guarde **no gerenciador de senhas**.
      Não vamos usá-la no dia a dia, mas é a senha de recuperação do banco.
+
+     > ⚠️ **Não anote a senha neste arquivo.** Ele é versionado no git: uma senha
+     > escrita aqui vai para o histórico do repositório e continua lá mesmo depois
+     > de apagada do arquivo. Se isso já aconteceu, rotacione em
+     > **Supabase > Project Settings > Database > Reset database password**.
+
    - **Region:** `South America (São Paulo)` — menor latência para a clínica.
    - **Plan:** Free por enquanto.
 3. Aguarde ~2 min enquanto o projeto sobe.
@@ -26,19 +32,34 @@ na URL `.vercel.app`.
 2. Abra [supabase/migrations/0001_init.sql](../supabase/migrations/0001_init.sql),
    copie o arquivo **inteiro** e cole no editor.
 3. **Run**. Deve terminar com `Success. No rows returned`.
-4. Confira em **Table Editor**: devem aparecer 5 tabelas — `admin_users`,
+4. Repita com [supabase/migrations/0002_contas_de_equipe.sql](../supabase/migrations/0002_contas_de_equipe.sql)
+   — libera contas de painel que não são médicos (agência, secretaria).
+5. Confira em **Table Editor**: devem aparecer 5 tabelas — `admin_users`,
    `admin_sessions`, `posts`, `post_revisions`, `admin_audit_log`.
 
-> Rode este arquivo **uma vez só**. Ele cria as tabelas do zero; rodar de novo dá erro
-> de "já existe", o que é inofensivo mas confuso.
+> Rode a `0001` **uma vez só**. Ela cria as tabelas do zero; rodar de novo dá erro
+> de "já existe", o que é inofensivo mas confuso. A `0002` é idempotente.
+
+## 2b. Criar o bucket das capas · ~1 min
+
+**Storage** → **New bucket**:
+
+- **Name:** `blog-covers`
+- **Public bucket:** ✅ sim (leitura pública — é de lá que o site serve as capas)
+- **File size limit:** `4 MB`
+- **Allowed MIME types:** `image/jpeg`, `image/png`, `image/webp`
+
+Sem esse bucket, publicar funciona mas **enviar capa falha** — o artigo cai na arte
+padrão da especialidade. Os limites são reforçados pelo próprio Storage, além da
+validação do formulário.
 
 ## 3. Pegar as credenciais · ~1 min
 
 **Project Settings** (engrenagem) → **API**:
 
-| Onde | O que copiar |
-|---|---|
-| Project URL | vai em `SUPABASE_URL` |
+| Onde                                  | O que copiar                       |
+| ------------------------------------- | ---------------------------------- |
+| Project URL                           | vai em `SUPABASE_URL`              |
 | Project API keys → **`service_role`** | vai em `SUPABASE_SERVICE_ROLE_KEY` |
 
 > ⚠️ É a chave **`service_role`**, não a `anon`. Ela ignora as políticas de RLS e tem
@@ -68,7 +89,7 @@ npm run seed:admins -- dr-alexandre=alexandre@exemplo.com \
                        dr-igor=igor@exemplo.com
 ```
 
-A saída traz **uma senha temporária por médico**, no formato `A7K2-9PXM-4RTQ-8WZN`:
+A saída traz **uma senha temporária por médico**, no formato `XXXX-XXXX-XXXX-XXXX`:
 
 ```
 ────────────────────────────────────────────────────────────────────────
@@ -77,7 +98,7 @@ SENHAS TEMPORÁRIAS — anote agora, não serão exibidas de novo.
 
   Dr. Alexandre Pipino
   e-mail: alexandre@exemplo.com
-  senha:  A7K2-9PXM-4RTQ-8WZN
+  senha:  XXXX-XXXX-XXXX-XXXX
   ...
 ```
 
@@ -132,13 +153,13 @@ Roteiro de verificação em `http://localhost:4321`:
 
 ## Como fica a operação
 
-| Situação | O que fazer |
-|---|---|
-| Médico esqueceu a senha | Outro médico: **Equipe → Redefinir senha**. Passa a temporária por telefone. |
-| Notebook perdido/roubado | **Equipe → Suspender acesso** (derruba as sessões na hora). Depois **Redefinir senha** e reativar. |
-| Trocar a própria senha | **Minha conta → Trocar senha**. Desconecta os outros dispositivos automaticamente. |
-| Ver acessos suspeitos | **Minha conta → Dispositivos conectados** |
-| Painel diz "não configurado" | Faltam as variáveis do Supabase na Vercel |
+| Situação                     | O que fazer                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| Médico esqueceu a senha      | Outro médico: **Equipe → Redefinir senha**. Passa a temporária por telefone.                       |
+| Notebook perdido/roubado     | **Equipe → Suspender acesso** (derruba as sessões na hora). Depois **Redefinir senha** e reativar. |
+| Trocar a própria senha       | **Minha conta → Trocar senha**. Desconecta os outros dispositivos automaticamente.                 |
+| Ver acessos suspeitos        | **Minha conta → Dispositivos conectados**                                                          |
+| Painel diz "não configurado" | Faltam as variáveis do Supabase na Vercel                                                          |
 
 **Regras embutidas no sistema:**
 
@@ -150,9 +171,37 @@ Roteiro de verificação em `http://localhost:4321`:
 
 ---
 
-## Próximo passo (Fase 3)
+## Fase 3 — concluída
 
-Os artigos ainda moram em `src/content/blog` e são publicados por commit no GitHub —
-por isso `GITHUB_TOKEN` e `GITHUB_REPO` continuam no `.env.example`. A Fase 3 move o
-conteúdo para a tabela `posts` (já criada pela migration) e traz **edição de artigo
-publicado** e **pré-visualização de rascunho**, que hoje não existem.
+Os artigos **não moram mais em arquivos**. Saíram de `src/content/blog/*.md` e foram
+para a tabela `posts` no Postgres. O que mudou na prática:
+
+|                    | Antes                              | Agora                                      |
+| ------------------ | ---------------------------------- | ------------------------------------------ |
+| Publicar           | commit no GitHub → build → 1-2 min | `INSERT` — no ar na hora                   |
+| Editar publicado   | não existia                        | formulário preenchido, endereço preservado |
+| Rascunho           | invisível até publicar             | abre no site real para quem está logado    |
+| Histórico          | `git log`                          | tabela `post_revisions`, no próprio painel |
+| Segredo necessário | `GITHUB_TOKEN` (expira)            | nenhum a mais                              |
+
+`GITHUB_TOKEN`, `GITHUB_REPO`, `GITHUB_BRANCH` e `VERCEL_DEPLOY_HOOK_URL` foram
+removidas — nenhuma linha de código as usa. `src/lib/admin/github.ts`,
+`src/content.config.ts` e os `.md` também saíram (o histórico segue no git).
+
+**O editor não exige saber Markdown.** A barra de formatação tem Título, Negrito,
+Itálico, listas, citação e link, com `Ctrl+B` / `Ctrl+I` / `Ctrl+K`, e a aba
+**Visualizar** renderiza pelo mesmo caminho da página publicada — o que aparece na
+prévia é o que vai ao ar.
+
+### Duas coisas para saber
+
+**O blog agora depende do banco.** As páginas de `/blog` leem o Postgres a cada visita.
+O resto do site (home, especialistas, contato) segue estático e não toca o banco. O
+`keep-alive` deixou de ser opcional — ver abaixo.
+
+**O `vercel.json` não serve mais como keep-alive na Hostinger.** Quem mantém o projeto
+Supabase acordado é `.github/workflows/keep-alive.yml`, que vive no GitHub para
+sobreviver à troca de host. Defina a variável `HEALTH_URL` em
+**GitHub → Settings → Secrets and variables → Actions → Variables**.
+
+Detalhes da migração e o passo a passo do deploy: [MIGRACAO-HOSTINGER.md](MIGRACAO-HOSTINGER.md).
