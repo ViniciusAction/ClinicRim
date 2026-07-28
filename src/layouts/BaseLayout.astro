@@ -4,6 +4,7 @@ import BaseHead from '@/components/seo/BaseHead.astro';
 import Button from '@/components/ui/Button.astro';
 import Container from '@/components/ui/Container.astro';
 import BrandLogo from '@/components/ui/BrandLogo.astro';
+import WhatsappFloat from '@/components/ui/WhatsappFloat.astro';
 import { clinic } from '@/data/clinic';
 import { buildWhatsappUrl } from '@/lib/utils/whatsapp';
 
@@ -243,6 +244,10 @@ const year = new Date().getFullYear();
         </Container>
       </div>
     </footer>
+
+    {/* Atalho de WhatsApp que acompanha a rolagem. Fora do <main> de propósito:
+        é um elemento fixo da janela, não parte do conteúdo da página. */}
+    <WhatsappFloat />
 
     {/* Script de scroll-reveal — Intersection Observer (zero dependência) */}
     <script is:inline>

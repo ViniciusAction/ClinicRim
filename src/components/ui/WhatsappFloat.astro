@@ -1,0 +1,141 @@
+---
+import { buildWhatsappUrl } from '@/lib/utils/whatsapp';
+import { clinic } from '@/data/clinic';
+
+/**
+ * Botão flutuante de WhatsApp — acompanha o visitante em toda rolagem do site.
+ *
+ * DECISÕES QUE NÃO SÃO ÓBVIAS
+ *
+ * · Aparece só depois de ~320 px de rolagem. No topo da página o Hero já tem o
+ *   CTA principal de WhatsApp; mostrar os dois ao mesmo tempo compete com ele e
+ *   ainda tampa conteúdo logo na primeira impressão. O botão entra quando aquele
+ *   CTA já saiu de vista — que é exatamente quando ele passa a ser útil.
+ *
+ * · Some quando a seção de contato está na tela. Quem já chegou ao formulário
+ *   não precisa de um atalho para contato flutuando sobre ele.
+ *
+ * · `z-30`: abaixo do header (`z-40`) e do menu mobile (`z-50`), acima do
+ *   conteúdo. Sem isso o botão passaria por cima do menu aberto.
+ *
+ * · Não renderiza o link se não houver número em clinic.ts. Um botão de WhatsApp
+ *   que não abre o WhatsApp é pior que nenhum botão. O `<style>` e o `<script>`
+ *   ficam fora da condicional de propósito: dentro de uma expressão, o conteúdo
+ *   deles seria lido como JSX e as chaves do CSS quebrariam o parser. O script
+ *   já sai na primeira linha se não achar o elemento.
+ */
+const waUrl = buildWhatsappUrl(
+  `Olá! Vim pelo site da ${clinic.name} e gostaria de agendar uma consulta.`,
+);
+---
+
+{
+  waUrl && (
+    <a
+      id="wa-float"
+      href={waUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Falar com a clínica pelo WhatsApp"
+      data-hidden
+      class="group fixed right-4 bottom-4 z-30 flex items-center gap-2.5 rounded-full bg-[#25D366] py-3.5 pr-4 pl-3.5 font-sans text-sm font-semibold text-white shadow-lg shadow-black/25 transition-[opacity,transform,box-shadow] duration-300 hover:shadow-xl hover:shadow-black/30 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#075E54] focus-visible:outline-none sm:right-6 sm:bottom-6"
+    >
+      {/* Ícone oficial do WhatsApp. `aria-hidden` porque o rótulo acessível já
+          está no aria-label do link — anunciar duas vezes é ruído no leitor. */}
+      <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.347-.347.52-.52.174-.174.232-.298.347-.497.115-.198.057-.372-.058-.52-.115-.149-.66-1.595-.904-2.185-.238-.574-.48-.497-.66-.505-.171-.008-.367-.01-.563-.01a1.08 1.08 0 0 0-.784.366c-.27.297-1.03 1.006-1.03 2.452 0 1.445 1.054 2.842 1.2 3.04.148.198 2.075 3.17 5.026 4.444.702.303 1.25.484 1.678.62.706.224 1.348.192 1.856.116.566-.084 1.741-.712 1.987-1.4.247-.687.247-1.276.173-1.4-.074-.124-.272-.198-.569-.347z" />
+        <path d="M12.05 0h-.007C5.404 0 .004 5.401.004 12.05a11.98 11.98 0 0 0 1.633 6.062L.058 24l6.076-1.594a11.96 11.96 0 0 0 5.916 1.556c6.647 0 12.047-5.402 12.047-12.05C24.097 5.402 18.697 0 12.05 0zm0 21.834a9.76 9.76 0 0 1-5.19-1.494l-.372-.221-3.85 1.01 1.028-3.757-.243-.386a9.73 9.73 0 0 1-1.5-5.19c0-5.395 4.39-9.784 9.79-9.784 5.394 0 9.783 4.39 9.783 9.79 0 5.395-4.39 9.784-9.783 9.784z" />
+      </svg>
+      {/* Texto só a partir de sm: em telas pequenas o botão fica redondo, para
+          ocupar o mínimo possível de uma tela já apertada. */}
+      <span class="hidden sm:inline">Fale conosco</span>
+    </a>
+  )
+}
+
+<style>
+  /*
+    Estado escondido: deslocado e sem receber clique nem foco.
+    `visibility` junto do `opacity` importa — só com opacity o botão continuaria
+    clicável e alcançável por Tab enquanto invisível.
+  */
+  #wa-float[data-hidden] {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(0.75rem) scale(0.95);
+  }
+
+  #wa-float {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+
+  #wa-float:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Quem pediu menos animação recebe aparecimento seco, sem transição. */
+  @media (prefers-reduced-motion: reduce) {
+    #wa-float,
+    #wa-float[data-hidden],
+    #wa-float:hover {
+      transition: none;
+      transform: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const button = document.getElementById('wa-float');
+    if (!button) return;
+
+    const SHOW_AFTER = 320;
+    const contact = document.getElementById('contato');
+    let contactVisible = false;
+
+    function update() {
+      const scrolled = window.scrollY > SHOW_AFTER;
+      if (scrolled && !contactVisible) button.removeAttribute('data-hidden');
+      else button.setAttribute('data-hidden', '');
+    }
+
+    /*
+      A seção de contato entrou na tela? Enquanto estiver, o botão sai.
+      IntersectionObserver em vez de medir posição a cada rolagem: o navegador
+      resolve sozinho, sem custo por evento.
+    */
+    if (contact && 'IntersectionObserver' in window) {
+      new IntersectionObserver(
+        function (entries) {
+          contactVisible = entries[0].isIntersecting;
+          update();
+        },
+        { threshold: 0.15 },
+      ).observe(contact);
+    }
+
+    /*
+      `passive` para não bloquear a rolagem, e requestAnimationFrame para não
+      recalcular mais de uma vez por quadro — scroll dispara dezenas de vezes
+      por segundo.
+    */
+    let queued = false;
+    window.addEventListener(
+      'scroll',
+      function () {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(function () {
+          queued = false;
+          update();
+        });
+      },
+      { passive: true },
+    );
+
+    /* Estado inicial: cobre recarregar a página já rolado. */
+    update();
+  })();
+</script>

@@ -27,13 +27,16 @@ import { maskPhoneBR } from '@/lib/utils/phone';
  */
 type Tab = 'paciente' | 'medico';
 
+/** `blocked` = mensagem pronta, mas o navegador barrou a abertura automática. */
+type Status = 'idle' | 'success' | 'blocked' | 'error';
+
 interface ContactFormProps {
   /** Número em formato internacional (clinic.whatsappNumber), sem '+'. */
   whatsappNumber?: string;
 }
 
 const LGPD_PLACEHOLDER_TEXT =
-  'Li e concordo com o uso dos meus dados para contato pela Clínica RIM, conforme a Política de Privacidade. [Texto provisório — substituir pelo texto oficial de consentimento LGPD da clínica.]';
+  'Li e concordo com o uso dos meus dados para contato pela Clínica RIM, conforme a Política de Privacidade.';
 
 function fieldId(prefix: string, name: string) {
   return `${prefix}-${name}`;
@@ -41,7 +44,18 @@ function fieldId(prefix: string, name: string) {
 
 export default function ContactForm({ whatsappNumber }: ContactFormProps) {
   const [tab, setTab] = useState<Tab>('paciente');
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<Status>('idle');
+  /**
+   * URL do WhatsApp guardada para o caso de o pop-up ser bloqueado.
+   *
+   * Não é detalhe: a validação (Zod) é assíncrona, então quando este código
+   * roda já se passou um microtask desde o clique — e Safari e bloqueadores de
+   * pop-up recusam `window.open` fora do gesto direto do usuário. Quando isso
+   * acontece o `open` devolve `null`, o formulário parecia ter enviado e NADA
+   * abria. Guardando a URL, oferecemos um link de verdade: clique em âncora
+   * nunca é bloqueado.
+   */
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
   const idPrefix = useId();
   const canSend = Boolean(whatsappNumber && whatsappNumber.trim().length > 0);
 
@@ -86,8 +100,19 @@ export default function ContactForm({ whatsappNumber }: ContactFormProps) {
     try {
       const message = buildContactMessage(data);
       const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setStatus('success');
+
+      const opened = window.open(url, '_blank', 'noopener,noreferrer');
+
+      // `open` devolve null quando o navegador barra a janela. Nesse caso o
+      // usuário recebe um link visível em vez de achar que nada aconteceu.
+      if (opened) {
+        setFallbackUrl(null);
+        setStatus('success');
+      } else {
+        setFallbackUrl(url);
+        setStatus('blocked');
+      }
+
       reset({
         tipo: data.tipo,
         nomeCompleto: '',
@@ -225,7 +250,7 @@ export default function ContactForm({ whatsappNumber }: ContactFormProps) {
             isSubmitting={isSubmitting}
           />
 
-          <StatusMessage status={status} />
+          <StatusMessage status={status} fallbackUrl={fallbackUrl} />
         </form>
       </Tabs.Content>
 
@@ -306,7 +331,7 @@ export default function ContactForm({ whatsappNumber }: ContactFormProps) {
 
           <SubmitButton label="Enviar Mensagem" disabled={!canSend} isSubmitting={isSubmitting} />
 
-          <StatusMessage status={status} />
+          <StatusMessage status={status} fallbackUrl={fallbackUrl} />
         </form>
       </Tabs.Content>
     </Tabs.Root>
@@ -345,9 +370,9 @@ function Field({
       {/* clona o filho único para injetar aria-* sem repetir os atributos em cada caller */}
       {isValidElement(children)
         ? cloneElement(children, {
-            'aria-invalid': Boolean(error) || undefined,
-            'aria-describedby': error ? errorId : undefined,
-          } as Record<string, unknown>)
+          'aria-invalid': Boolean(error) || undefined,
+          'aria-describedby': error ? errorId : undefined,
+        } as Record<string, unknown>)
         : children}
       {error && (
         <p id={errorId} role="alert" className="mt-1.5 text-sm text-red-600">
@@ -412,14 +437,41 @@ function SubmitButton({
   );
 }
 
-function StatusMessage({ status }: { status: 'idle' | 'success' | 'error' }) {
+function StatusMessage({ status, fallbackUrl }: { status: Status; fallbackUrl: string | null }) {
   if (status === 'idle') return null;
 
   if (status === 'success') {
     return (
-      <p role="status" className="rounded-2xl bg-green-500/10 px-4 py-3 font-sans text-sm text-green-300">
+      <p
+        role="status"
+        className="rounded-2xl bg-green-500/10 px-4 py-3 font-sans text-sm text-green-300"
+      >
         Mensagem pronta! Continue o envio pelo WhatsApp que abrimos para você.
       </p>
+    );
+  }
+
+  /**
+   * Pop-up barrado. A mensagem está montada e correta — só falta abrir, e uma
+   * âncora clicada pelo usuário nunca é bloqueada. Sem esta saída, o formulário
+   * dizia "enviado" e o WhatsApp nunca aparecia.
+   */
+  if (status === 'blocked' && fallbackUrl) {
+    return (
+      <div
+        role="status"
+        className="rounded-2xl bg-gold-500/10 px-4 py-3 font-sans text-sm text-gold-200"
+      >
+        <p>Sua mensagem está pronta. O navegador bloqueou a abertura automática:</p>
+        <a
+          href={fallbackUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#25D366] px-5 font-sans text-sm font-semibold text-white transition-colors hover:bg-[#20bd5a] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+        >
+          Abrir o WhatsApp e enviar
+        </a>
+      </div>
     );
   }
 
