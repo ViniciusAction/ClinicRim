@@ -13,12 +13,20 @@ declare namespace App {
   }
 }
 
-interface ImportMetaEnv {
-  readonly SUPABASE_URL?: string;
-  readonly SUPABASE_SERVICE_ROLE_KEY?: string;
-  readonly VERCEL_DEPLOY_HOOK_URL?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+/**
+ * NÃO declare os segredos (SUPABASE_*, GITHUB_*) aqui.
+ *
+ * Existia um `ImportMetaEnv` com SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e
+ * VERCEL_DEPLOY_HOOK_URL. Foi removido por dois motivos:
+ *
+ *  1. Declarar convida a ler por `import.meta.env.X` — e o Vite inlina esses
+ *     valores no bundle em tempo de build, gravando a chave de administrador do
+ *     banco em texto puro no dist. Segredo se lê de `process.env`, em runtime,
+ *     pelo helper `env()` de src/lib/db.ts. O tipo aqui só facilitava o erro.
+ *
+ *  2. VERCEL_DEPLOY_HOOK_URL nunca foi usado por nenhuma linha de código: o
+ *     rebuild é disparado pelo push que o painel faz no repositório, não por
+ *     deploy hook. Era configuração fantasma no .env.example.
+ *
+ * `import.meta.env.PROD` / `.DEV` continuam tipados — vêm de `astro/client`.
+ */
