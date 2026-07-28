@@ -5,12 +5,14 @@ import { getDoctorById } from '@/data/doctors';
 import { clientIp } from '@/lib/utils/request';
 
 /**
- * Equipe — as três contas do painel.
+ * Equipe — as contas do painel: os 3 médicos e as contas de equipe
+ * (agência/secretaria, com `doctorId` nulo).
  *
- * NÃO existe criação de usuário aqui, de propósito: o corpo clínico é fixo e
- * definido em src/data/doctors.ts, e cada conta é criada uma única vez pelo
- * script `npm run seed:admins`. Uma tela de "convidar usuário" seria uma porta
- * a mais para manter fechada, sem nenhum uso real.
+ * NÃO existe criação de usuário aqui, de propósito. Contas são criadas por
+ * script, com o .env em mãos — `npm run seed:admins` para os médicos e
+ * `npm run create:user` para as de equipe. Uma tela de "convidar usuário" é
+ * uma porta a mais para manter fechada, e criar acesso é um evento raro: não
+ * vale expor isso na web para uma operação que acontece uma vez por ano.
  *
  * O que existe é o que a operação de uma clínica precisa de verdade:
  *  · redefinir a senha de um colega que esqueceu a dele (sem depender de e-mail);
@@ -70,7 +72,7 @@ const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyl
   <div class="mx-auto max-w-3xl">
     <h1 class="font-display text-ink-900 text-2xl font-medium">Equipe</h1>
     <p class="text-ink-500 mt-1 font-sans text-sm leading-relaxed">
-      Os três médicos têm exatamente o mesmo poder no painel: publicar, editar, excluir e
+      Todas as contas têm exatamente o mesmo poder no painel: publicar, editar, excluir e
       administrar estas contas.
     </p>
 
@@ -125,7 +127,8 @@ const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyl
         ) : (
           <ul class="divide-ink-100 divide-y">
             {users.map((account) => {
-              const doctor = getDoctorById(account.doctorId);
+              // Conta de equipe tem doctorId nulo — não há perfil para buscar.
+              const doctor = account.doctorId ? getDoctorById(account.doctorId) : undefined;
               const isSelf = account.id === currentUser.id;
 
               return (
@@ -151,7 +154,7 @@ const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyl
                     </p>
                     <p class="text-ink-400 mt-0.5 font-sans text-xs">
                       {account.email}
-                      {doctor && ` · ${doctor.role}`}
+                      {` · ${doctor ? doctor.role : 'Equipe'}`}
                     </p>
                     <p class="text-ink-400 mt-0.5 font-sans text-xs">
                       {account.lastLoginAt
@@ -217,8 +220,8 @@ const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyl
     </div>
 
     <p class="text-ink-400 mt-6 font-sans text-xs leading-relaxed">
-      ℹ️ Não há recuperação de senha por e-mail — e isso é intencional. Como os três são
-      administradores, quem esquecer a senha pede a um colega para redefinir aqui. Menos peças,
+      ℹ️ Não há recuperação de senha por e-mail — e isso é intencional. Como todas as contas são
+      administradoras, quem esquecer a senha pede a um colega para redefinir aqui. Menos peças,
       menos coisas para dar errado.
     </p>
   </div>
