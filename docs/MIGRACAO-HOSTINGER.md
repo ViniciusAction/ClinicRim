@@ -81,7 +81,7 @@ migração e funciona nos dois hosts e no meio do caminho.
 `GitHub → Settings → Secrets and variables → Actions → Variables`:
 
 - durante a transição: `https://<sua-preview>.vercel.app/api/health`
-- depois do DNS: `https://www.clinicarim.com.br/api/health`
+- depois do DNS: `https://clinicarim.com.br/api/health`
 
 Rode uma vez à mão pela aba **Actions** para confirmar.
 

@@ -57,14 +57,28 @@ for (const [key, value] of Object.entries(
  */
 const adapter = process.env.DEPLOY_TARGET === 'node' ? node({ mode: 'standalone' }) : vercel();
 
-// O site público continua estático (SSG) — todas as páginas são prerenderizadas.
-// O adapter Node existe APENAS para a área restrita (/admin), que usa
-// `export const prerender = false` (login + painel que grava posts como
-// markdown em src/content/blog).
-// `site` é obrigatório para o sitemap, o RSS e as URLs absolutas de Open Graph.
+/**
+ * O site público é estático (SSG). Renderizadas sob demanda são apenas a área
+ * restrita (`/admin`, `/api/admin`) e as páginas do blog, que leem os artigos
+ * do Postgres — ver src/lib/blog.ts.
+ *
+ * `site` é obrigatório para o sitemap, o RSS e as URLs absolutas de Open Graph.
+ */
 export default defineConfig({
-  // TODO: confirmar o domínio final de produção (impacta sitemap, RSS e OG).
-  site: 'https://www.clinicarim.com.br',
+  /**
+   * Domínio canônico: o APEX, sem `www`.
+   *
+   * Não é preferência estética — é o que o domínio do cliente já faz hoje.
+   * Verificado no ar: `https://clinicarim.com.br/` responde 200,
+   * `https://www.clinicarim.com.br/` responde 301 para o apex, e o
+   * `<link rel="canonical">` do site atual aponta para o apex.
+   *
+   * Estava `https://www.clinicarim.com.br` aqui, ou seja, ao contrário. O
+   * sintoma seria discreto e ruim: sitemap, RSS e as URLs de Open Graph (a
+   * prévia de link no WhatsApp e nas redes) sairiam todas apontando para um
+   * endereço que redireciona.
+   */
+  site: 'https://clinicarim.com.br',
 
   adapter,
 
@@ -111,10 +125,28 @@ export default defineConfig({
   integrations: [
     // Ilhas interativas (acordeões, formulário, mapa).
     react(),
-    // Permite posts do blog em .mdx além de .md.
+    // Permite páginas .mdx. Os artigos do blog NÃO usam mais isto — eles vivem
+    // no Postgres (ver src/lib/blog.ts); ficou para páginas avulsas em .mdx.
     mdx(),
-    // Gera /sitemap-index.xml automaticamente no build.
-    sitemap(),
+
+    /**
+     * Gera /sitemap-index.xml no build, com as páginas estáticas.
+     *
+     * O `filter` não é zelo excessivo: sem ele, o sitemap listava
+     * `/admin/`, `/admin/login/`, `/admin/novo/`, `/admin/conta/` e
+     * `/admin/usuarios/` — verificado na saída do build. Essas páginas são
+     * `noindex` e bloqueadas no robots.txt, então o sitemap estava ao mesmo
+     * tempo pedindo que fossem indexadas e proibindo — sinal contraditório para
+     * o buscador — e, de passagem, publicando num arquivo XML aberto o mapa
+     * exato da área restrita.
+     *
+     * Os artigos do blog não entram aqui: são rotas sob demanda, que o build
+     * não conhece. Eles têm o próprio sitemap em src/pages/sitemap-blog.xml.ts,
+     * e os dois estão declarados em public/robots.txt.
+     */
+    sitemap({
+      filter: (page) => !/\/(admin|api)(\/|$)/.test(new URL(page).pathname),
+    }),
   ],
 
   vite: {

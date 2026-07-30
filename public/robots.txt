@@ -11,5 +11,5 @@ Disallow: /api/
 #                     porque os artigos vivem no Postgres e são renderizados sob
 #                     demanda: o build não conhece os slugs, então o sitemap do
 #                     build não os incluiria. Ver src/pages/sitemap-blog.xml.ts.
-Sitemap: https://www.clinicarim.com.br/sitemap-index.xml
-Sitemap: https://www.clinicarim.com.br/sitemap-blog.xml
+Sitemap: https://clinicarim.com.br/sitemap-index.xml
+Sitemap: https://clinicarim.com.br/sitemap-blog.xml
