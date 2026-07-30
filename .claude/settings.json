@@ -198,7 +198,18 @@
       "Bash(git diff *)",
       "Bash(perl -0pi -e 's/contato\\\\@lunetalab\\\\.com \"Luneta Lab\"/contato\\\\@exemplo.com \"Nome da Agência\"/g' scripts/create-user.ts)",
       "Bash(git reset *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(command -v gh)",
+      "Bash(gh api *)",
+      "PowerShell($ErrorActionPreference='Continue'; foreach \\($d in @\\('clinicarim.com.br','www.clinicarim.com.br'\\)\\) { Write-Output \"══════ $d ══════\"; foreach \\($t in @\\('A','CNAME','MX','NS','TXT'\\)\\) { try { $r = Resolve-DnsName -Name $d -Type $t -ErrorAction Stop | Where-Object { $_.Type -eq $t }; if \\($r\\) { Write-Output \"  [$t]\"; $r | ForEach-Object { $v = if \\($_.IPAddress\\) { $_.IPAddress } elseif \\($_.NameHost\\) { $_.NameHost } elseif \\($_.Strings\\) { $_.Strings -join ' ' } else { $_.ToString\\(\\) }; Write-Output \"    $v\" } } } catch { } } })",
+      "PowerShell($ErrorActionPreference='Continue'; Write-Output \"══════ MX \\(e-mail do dominio\\) ══════\"; Resolve-DnsName -Name 'clinicarim.com.br' -Type MX | Where-Object { $_.Type -eq 'MX' } | ForEach-Object { Write-Output \\(\"  pref {0}  ->  {1}\" -f $_.Preference, $_.NameExchange\\) }; Write-Output \"\"; Write-Output \"══════ subdominios comuns ══════\"; foreach \\($s in @\\('mail','webmail','autodiscover','ftp','cpanel','blog','painel','admin'\\)\\) { $n = \"$s.clinicarim.com.br\"; try { $r = Resolve-DnsName -Name $n -ErrorAction Stop | Select-Object -First 1; $v = if \\($r.IPAddress\\) { $r.IPAddress } elseif \\($r.NameHost\\) { $r.NameHost } else { $r.Type }; Write-Output \\(\"  {0,-34} {1}\" -f $n, $v\\) } catch { Write-Output \\(\"  {0,-34} \\(nao existe\\)\" -f $n\\) } })",
+      "Bash(echo \"══════ o que responde hoje ══════\")",
+      "Bash(curl -s -o /tmp/wp.html -D /tmp/wp.hdr -w '  status: %{http_code}\\\\n  tamanho: %{size_download} bytes\\\\n  ip: %{remote_ip}\\\\n' --max-time 25 -L https://clinicarim.com.br/)",
+      "Bash(echo)",
+      "Bash(echo \"══════ cabecalhos reveladores ══════\")",
+      "Bash(curl -s --max-time 25 'https://clinicarim.com.br/wp-json/wp/v2/pages?per_page=100&_fields=id,slug,link,title,status')",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{try{const a=JSON.parse\\(d\\);console.log\\('total:',a.length\\);a.forEach\\(p=>console.log\\('  -',p.date&&p.date.slice\\(0,10\\),p.link\\)\\)}catch\\(e\\){console.log\\('  \\(sem resposta utilizavel\\)',d.slice\\(0,150\\)\\)}}\\)\")",
+      "Bash(git stash *)"
     ],
     "additionalDirectories": [
       "\\tmp",
