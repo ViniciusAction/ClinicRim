@@ -54,6 +54,7 @@ exige tocar no registro.br.
 | `clinicarim.com.br`                            | TXT     | `v=spf1 include:_spf.mail.hostinger.com ~all` |
 | `_dmarc.clinicarim.com.br`                     | TXT     | `v=DMARC1; p=none`                            |
 | `autodiscover.clinicarim.com.br`               | CNAME   | `autodiscover.mail.hostinger.com`             |
+| `autoconfig.clinicarim.com.br`                 | CNAME   | `autoconfig.mail.hostinger.com`               |
 | `hostingermail-a._domainkey.clinicarim.com.br` | CNAME   | `hostingermail-a.dkim.mail.hostinger.com`     |
 | `hostingermail-b._domainkey.clinicarim.com.br` | CNAME   | `hostingermail-b.dkim.mail.hostinger.com`     |
 | `hostingermail-c._domainkey.clinicarim.com.br` | CNAME   | `hostingermail-c.dkim.mail.hostinger.com`     |
@@ -65,11 +66,41 @@ tocado**.
 O e-mail está com SPF + DKIM (três chaves) + DMARC configurados, ou seja, é um
 domínio de e-mail em uso real e bem configurado — não sobra de instalação.
 
+> ⚠️ **São NOVE registros de e-mail, não oito.** A primeira versão deste
+> documento listava oito: o levantamento foi feito sondando nomes de subdomínio
+> conhecidos, e `autoconfig` não estava na lista de palpites. Ele apareceu
+> depois, ao ver a zona completa no painel da Hostinger.
+>
+> A lição vale para qualquer restauração futura: **confira contra a zona no
+> painel, não contra uma sondagem externa.** Consulta de fora só encontra
+> registros cujo nome você já suspeita — não existe "listar tudo" em DNS
+> público. Se um dia recriar esta zona em outro provedor, exporte do painel.
+>
+> `autodiscover` (Outlook) e `autoconfig` (Thunderbird) fazem a configuração
+> automática de conta nos clientes de e-mail. Sem eles o e-mail continua
+> funcionando, mas quem for adicionar a conta no celular ou no Outlook precisa
+> digitar servidor, porta e método de segurança à mão.
+
 ---
 
-## Domínio canônico: o apex, sem `www`
+## Domínio canônico: `www` (decidido no cutover)
 
-Verificado no ar:
+Na Vercel ficou assim, e `astro.config.mjs` + `public/robots.txt` acompanham:
+
+```
+www.clinicarim.com.br  → Production   (serve o site)
+clinicarim.com.br      → 308 → www    (redireciona)
+```
+
+Entre apex e `www` a escolha é indiferente para SEO **desde que seja
+consistente**. O que não pode é divergência entre o `site` do Astro e o host de
+produção — aí sitemap, RSS e as URLs de Open Graph (prévia de link no WhatsApp)
+apontam para um endereço que redireciona.
+
+O site anterior canonicalizava no apex, mas era uma página "em breve": não havia
+histórico indexado a preservar.
+
+### Como era antes do cutover, para referência
 
 | URL                              | Resposta                               |
 | -------------------------------- | -------------------------------------- |

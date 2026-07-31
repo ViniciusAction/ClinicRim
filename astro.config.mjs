@@ -66,19 +66,29 @@ const adapter = process.env.DEPLOY_TARGET === 'node' ? node({ mode: 'standalone'
  */
 export default defineConfig({
   /**
-   * Domínio canônico: o APEX, sem `www`.
+   * Domínio canônico: `www`.
    *
-   * Não é preferência estética — é o que o domínio do cliente já faz hoje.
-   * Verificado no ar: `https://clinicarim.com.br/` responde 200,
-   * `https://www.clinicarim.com.br/` responde 301 para o apex, e o
-   * `<link rel="canonical">` do site atual aponta para o apex.
+   * ⚠️ Este valor precisa casar com o domínio de PRODUÇÃO configurado na
+   * Vercel. Ele alimenta o sitemap, o RSS e as URLs absolutas de Open Graph (a
+   * prévia de link no WhatsApp e nas redes sociais). Se apontar para o lado
+   * errado, todas essas URLs levam a um endereço que redireciona — o site
+   * funciona, mas cada link publicado dá um salto a mais, e o canônico do HTML
+   * discorda de onde a página realmente mora.
    *
-   * Estava `https://www.clinicarim.com.br` aqui, ou seja, ao contrário. O
-   * sintoma seria discreto e ruim: sitemap, RSS e as URLs de Open Graph (a
-   * prévia de link no WhatsApp e nas redes) sairiam todas apontando para um
-   * endereço que redireciona.
+   * Na Vercel (Settings > Domains) está assim:
+   *   www.clinicarim.com.br  → Production   (serve o site)
+   *   clinicarim.com.br      → 308 → www    (redireciona)
+   *
+   * O site anterior, em WordPress, canonicalizava no apex. Trocamos para `www`
+   * porque é o que a Vercel configurou ao adicionar o domínio, e porque a
+   * escolha entre os dois é indiferente para SEO desde que seja CONSISTENTE —
+   * o que importa é não haver divergência entre este valor e o host de
+   * produção. O conteúdo indexado do site antigo era uma página "em breve",
+   * então não havia histórico a preservar no apex.
+   *
+   * Se algum dia inverter na Vercel, inverta aqui e em public/robots.txt.
    */
-  site: 'https://clinicarim.com.br',
+  site: 'https://www.clinicarim.com.br',
 
   adapter,
 
